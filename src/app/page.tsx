@@ -1,9 +1,14 @@
-import React from "react";
+"use client";
 
-const Homepage =()=> {
-  return <div className="w-9/10 max-h-[90vh] bg-[#1f2122] text-white rounded-[23px] p-[30px] overflow-y-auto">
-  <p className="!text-white">This text should be white.</p>
-</div>
-};
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
-export default Homepage;
+export default function Home() {
+  return (
+    <>
+      <Header />
+      <main className="container mx-auto p-6">Home Page Content</main>
+      <Footer/>
+    </>
+  );
+}

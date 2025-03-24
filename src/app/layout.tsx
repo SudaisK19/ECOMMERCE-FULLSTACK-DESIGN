@@ -1,16 +1,15 @@
-"use client"; 
+import { ReactNode } from "react";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 
+interface RootLayoutProps {
+  children: ReactNode;
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body>
-        
-        <main style={{ padding: "20px", minHeight: "80vh" }}>
-          {children}
-        </main>
-        
-       
+        <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
       </body>
     </html>
   );

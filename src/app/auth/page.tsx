@@ -13,12 +13,12 @@ export default function AuthPage() {
     email: "",
     password: "",
     address: "",
-    phone: ""
+    phone: "",
   });
 
   const [loginData, setLoginData] = useState({
     email: "",
-    password: ""
+    password: "",
   });
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -29,7 +29,7 @@ export default function AuthPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signupData)
+        body: JSON.stringify(signupData),
       });
 
       const data = await res.json();
@@ -53,7 +53,7 @@ export default function AuthPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData)
+        body: JSON.stringify(loginData),
       });
 
       const data = await res.json();
@@ -75,7 +75,14 @@ export default function AuthPage() {
   return (
     <div className="container">
       {error && <div className="error">{error}</div>}
+
       <div className={`message ${mode}`}>
+        {/* Brand logo and text side by side */}
+        <div className="brand">
+          <img src="/images/brand-icon.png" alt="Brand Icon" className="brand-icon" />
+          <span className="brand-text">Brand</span>
+        </div>
+
         <div className="btn-wrapper">
           <button className="button" onClick={() => setMode("signup")}>
             Sign Up
@@ -85,6 +92,7 @@ export default function AuthPage() {
           </button>
         </div>
       </div>
+
       <div className="form form--signup">
         <div className="form--heading">Welcome! Sign Up</div>
         <form autoComplete="off" onSubmit={handleSignup}>
@@ -123,6 +131,7 @@ export default function AuthPage() {
           </button>
         </form>
       </div>
+
       <div className="form form--login">
         <div className="form--heading">Welcome back!</div>
         <form autoComplete="off" onSubmit={handleLogin}>
@@ -143,11 +152,12 @@ export default function AuthPage() {
           </button>
         </form>
       </div>
+
       <style jsx>{`
         :global(body) {
           margin: 0;
           height: 100vh;
-          background: linear-gradient(90deg, #ffffff, #00d1ff);
+          background: #f3f4f6;
           font-family: "Source Sans Pro", sans-serif;
           overflow: hidden;
           display: flex;
@@ -189,6 +199,10 @@ export default function AuthPage() {
           height: 100%;
           transition: transform 0.5s ease;
           z-index: 4;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
         }
         .message.login {
           transform: translateX(0);
@@ -215,9 +229,26 @@ export default function AuthPage() {
           opacity: 0.3;
           left: 100%;
         }
+
+        /* Brand section side by side */
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 1rem;
+        }
+        .brand-icon {
+          width: 40px;
+          height: 40px;
+        }
+        .brand-text {
+          font-size: 1.2rem;
+          font-weight: 600;
+          color: #2c7cf1;
+        }
+
         .btn-wrapper {
           width: 100%;
-          height: 100%;
           display: flex;
           flex-direction: column;
           justify-content: center;

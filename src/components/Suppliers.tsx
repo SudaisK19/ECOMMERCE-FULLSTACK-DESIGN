@@ -14,7 +14,7 @@ const suppliers = [
   { country: "Great Britain", domain: "shopname.co.uk", flag: "/images/icons/GB@2x.png" },
 ];
 
-const SuppliersByRegion: React.FC = () => {
+const SuppliersByRegion = () => {
   return (
     <div className="w-full max-w-7xl mt-10">
       <h2 className="text-xl font-semibold mb-4">Suppliers by region</h2>

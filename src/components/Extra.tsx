@@ -24,7 +24,7 @@ const extraServices = [
   },
 ];
 
-const ExtraServices: React.FC = () => {
+const ExtraServices= () => {
   return (
     <div className="w-full max-w-7xl mt-10">
       <h2 className="text-xl font-semibold mb-4">Our extra services</h2>

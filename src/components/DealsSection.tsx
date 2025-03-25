@@ -1,9 +1,8 @@
-import Image from "next/image";
 
 export default function DealsSection() {
   return (
     <div className="bg-white w-full max-w-7xl mt-10 p-4 rounded-md">
-      {/* ✅ Left Section: Title, Subtitle & Timer */}
+      {/* Left Section: Title, Subtitle & Timer */}
       <div className="flex flex-col md:flex-row items-start md:items-center">
         
         {/* Title & Countdown Timer */}

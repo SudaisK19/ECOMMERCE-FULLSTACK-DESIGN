@@ -14,7 +14,7 @@ const recommendedProducts = [
   { name: "Jeans bag for travel for men", image: "/images/recommended/flask.png", price: "$80.95" },
 ];
 
-const RecommendedItems: React.FC = () => {
+const RecommendedItems = () => {
   return (
     <div className="w-full max-w-7xl mt-10">
       <h2 className="text-xl font-semibold mb-4">Recommended items</h2>

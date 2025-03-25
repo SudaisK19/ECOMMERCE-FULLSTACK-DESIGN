@@ -1,6 +1,6 @@
 import React from "react";
 
-const RequestQuote: React.FC = () => {
+const RequestQuote = () => {
   return (
     <div className="relative w-full max-w-7xl min-h-[420px] sm:h-[420px] rounded-lg overflow-hidden mt-8">
       {/* Background Image */}

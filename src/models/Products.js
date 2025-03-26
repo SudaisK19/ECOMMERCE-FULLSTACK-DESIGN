@@ -22,14 +22,9 @@ const ProductSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Please provide the stock quantity"],
     },
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-      required: [true, "Please provide a product category"],
-    },
   },
   { timestamps: true }
 );
 
-const Product = mongoose.models.Product || mongoose.model("Product", ProductSchema);
-export default Product;
+const Products = mongoose.models.Products || mongoose.model("Products", ProductSchema);
+export default Products;

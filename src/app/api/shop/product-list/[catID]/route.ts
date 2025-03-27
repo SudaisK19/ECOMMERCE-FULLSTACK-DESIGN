@@ -5,15 +5,12 @@ import Product from "@/models/productModel";
 // Ensure database connection
 connect();
 
-// Define the type for the context parameter
-interface Context {
-  params: { catID: string };
-}
-
-export async function GET(request: NextRequest, context: Context) {
+export async function GET(request: NextRequest) {
   try {
-    const { catID } = context.params;
-
+    // Extract catID from the URL path
+    const pathSegments = request.nextUrl.pathname.split("/");
+    const catID = pathSegments[pathSegments.length - 1]; // This assumes the catID is the last segment
+    
     if (!catID) {
       return NextResponse.json(
         { error: "Category ID is required" },

@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConfig/dbConfig";
 import Cart from "@/models/Cart";
-import mongoose from "mongoose"; // Import mongoose for ObjectId type
 
 connect();
 

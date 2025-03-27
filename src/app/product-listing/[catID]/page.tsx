@@ -27,7 +27,7 @@ export default function ProductListingPage() {
   const { catID } = useParams();
   const [viewMode, setViewMode] = useState("grid");
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories] = useState<Category[]>([]);
 
   // Handlers for toggling the view mode
   const handleGridClick = () => setViewMode("grid");

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 export async function POST() {
   try {
@@ -13,6 +13,7 @@ export async function POST() {
     });
     return response;
   } catch (error) {
+    console.error("Logout error:", error); // Log the error
     return NextResponse.json({ error: "Logout failed" }, { status: 500 });
   }
 }

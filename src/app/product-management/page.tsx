@@ -43,9 +43,11 @@ export default function AdminDashboard() {
         setError("Admin info not found.");
       }
     } catch (err) {
+      console.error("Error fetching admin info:", err);
       setError("Failed to fetch admin info.");
     }
   };
+  
 
   // Fetch products for product management tab
   const fetchProducts = async () => {
@@ -59,6 +61,7 @@ export default function AdminDashboard() {
         setError("No products found.");
       }
     } catch (err) {
+      console.error("Error fetching products info:", err);
       setError("Failed to fetch products.");
     }
   };
@@ -117,6 +120,7 @@ export default function AdminDashboard() {
       fetchProducts();
       setShowAddModal(false);
     } catch (err) {
+      console.error("Error adding product:", err);
       setError("Failed to add product.");
     }
   };
@@ -143,6 +147,7 @@ export default function AdminDashboard() {
       fetchProducts();
       setShowEditModal(false);
     } catch (err) {
+      console.error("Error updating product:", err);
       setError("Failed to update product.");
     }
   };
@@ -168,6 +173,7 @@ export default function AdminDashboard() {
       fetchProducts();
       setShowDeleteModal(false);
     } catch (err) {
+      console.error("Error deleting product:", err);
       setError("Failed to delete product.");
     }
   };

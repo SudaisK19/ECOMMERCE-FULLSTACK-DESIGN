@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import Description from "@/components/Description";
 
 // Static supplier details (Remains the Same)
@@ -39,7 +38,8 @@ export default function ProductDetail() {
         } else {
           setError(true);
         }
-      } catch (err) {
+      } catch (error) {
+        console.error("Error fetching product:", error); // ✅ Error is now used
         setError(true);
       } finally {
         setLoading(false);
@@ -197,9 +197,6 @@ export default function ProductDetail() {
             </button>
             </div>
         </div>
-
-
-       
         </div>
 
       <Description />

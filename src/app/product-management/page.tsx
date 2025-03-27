@@ -198,12 +198,6 @@ export default function AdminDashboard() {
         <aside className="sidebar">
           <nav className="nav-links">
             <button
-              className={`nav-item ${activeTab === "dashboard" ? "active" : ""}`}
-              onClick={() => setActiveTab("dashboard")}
-            >
-              <i className="fas fa-tachometer-alt"></i> Dashboard
-            </button>
-            <button
               className={`nav-item ${activeTab === "products" ? "active" : ""}`}
               onClick={() => setActiveTab("products")}
             >
@@ -217,7 +211,7 @@ export default function AdminDashboard() {
               <>
                 <img src="/images/avatar.png" alt="User Avatar" className="user-avatar" />
                 <div className="user-name">{user.name}</div>
-                <div className="user-email">{user.email}</div>  {/* Display email here */}
+                <div className="user-email">{user.email}</div> {/* Display email here */}
                 <div className="user-role">Admin</div>
               </>
             ) : (
@@ -229,33 +223,10 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
+
         {/* Main Content */}
         <main className="main-content">
-          {activeTab === "dashboard" && (
-            <div className="dashboard-charts">
-              <h2>Dashboard Charts</h2>
-              <div className="charts-row">
-                <div className="analytics-graph card">
-                  <h3>Analytics Graph</h3>
-                  <div className="chart-placeholder">[Analytics Chart]</div>
-                </div>
-                <div className="traffic-by-source card">
-                  <h3>Traffic by Source</h3>
-                  <div className="chart-placeholder">[Traffic by Source Chart]</div>
-                </div>
-              </div>
-              <div className="charts-row">
-                <div className="traffic-by-device card">
-                  <h3>Traffic by Device</h3>
-                  <div className="chart-placeholder">[Traffic by Device Chart]</div>
-                </div>
-                <div className="traffic-by-location card">
-                  <h3>Traffic by Location</h3>
-                  <div className="chart-placeholder">[Traffic by Location Chart]</div>
-                </div>
-              </div>
-            </div>
-          )}
+          
 
           {activeTab === "products" && (
             <div className="product-card">

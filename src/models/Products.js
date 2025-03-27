@@ -22,6 +22,11 @@ const ProductSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Please provide the stock quantity"],
     },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: [true, "Please provide a product category"],
+    },
   },
   { timestamps: true }
 );

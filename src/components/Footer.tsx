@@ -1,258 +1,116 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const Footer = () => {
   const router = useRouter();
 
-  // Handle auth navigation
-  const goToAuth = (mode: 'login' | 'signup') => {
-    router.push(`/auth?mode=${mode}`);
-  };
-
-  // Handle categories navigation
-  const goToCategories = () => {
+  const goToCategories = (e: React.MouseEvent) => {
+    e.preventDefault();
     router.push('/product-listing');
   };
 
   return (
-    <>
-      <footer className="footer">
-        <div className="footer-top">
-          {/* Left Side: Logo, description, social icons */}
-          <div className="footer-col brand">
-            <div className="logo">
-              <div className="logo-icon">
-                <img src="/images/brand-icon.png" alt="Brand" />
-              </div>
-              <span className="logo-text">Brand</span>
+    <footer className="w-full bg-white font-inter">
+      {/* Subscription Section */}
+      <div className="w-full bg-[#EFF2F4] flex flex-col justify-center items-center p-5 text-center">
+        <h2 className="text-lg font-semibold">Subscribe to our newsletter</h2>
+        <p className="text-sm text-gray-600 mt-1 max-w-sm">
+          Get daily news on upcoming offers from many suppliers all over the world
+        </p>
+
+        {/* Email Input & Subscribe Button */}
+        <div className="mt-4 flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
+          <div className="flex items-center border border-gray-300 rounded-md bg-white w-full">
+            <div className="px-3">
+              <Image src="/images/icons/email.png" alt="Email" width={16} height={16} />
             </div>
-            <p className="description">
-              Best information about the company gies here but now lorem ipsum
-            </p>
-            <div className="social-icons">
-              {['facebook', 'twitter', 'linkedin', 'instagram', 'youtube'].map((icon) => (
-                <a key={icon} href="#" onClick={(e) => e.preventDefault()}>
-                  <img src={`/images/icons/${icon}.png`} alt={icon} />
+            <input
+              type="email"
+              placeholder="Email"
+              className="px-2 py-2 outline-none w-full text-sm"
+            />
+          </div>
+          <button className="bg-blue-600 text-white px-4 py-2 text-sm rounded-md font-medium hover:bg-blue-700">
+            Subscribe
+          </button>
+        </div>
+      </div>
+
+      {/* Footer Content */}
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start py-10 px-5">
+        {/* Left Section (Brand + Socials) */}
+        <div className="flex flex-col items-center lg:items-start space-y-4 w-full lg:w-auto text-center lg:text-left">
+          <div className="flex items-center gap-2">
+            <Image src="/images/brand-icon.png" alt="Brand" width={40} height={40} />
+            <span className="text-2xl font-bold text-[#0d6efd]">Brand</span>
+          </div>
+          <p className="text-gray-600 text-sm leading-relaxed max-w-xs">
+            Best information about the company goes here but now lorem ipsum
+          </p>
+
+          {/* Social Icons */}
+          <div className="flex gap-3">
+            {['facebook', 'twitter', 'linkedin', 'instagram', 'youtube'].map((icon) => (
+              <a key={icon} href="#" onClick={(e) => e.preventDefault()} className="w-8 h-8">
+                <Image src={`/images/icons/${icon}.png`} alt={icon} width={32} height={32} />
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Center Links Section */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-left mx-auto w-full lg:w-auto text-center lg:text-left mt-6 lg:mt-0">
+          {[
+            { title: 'About', links: ['About Us', 'Find Store', 'Categories', 'Blogs'] },
+            { title: 'Partnership', links: ['About Us', 'Find Store', 'Categories', 'Blogs'] },
+            { title: 'Information', links: ['Help Center', 'Money Refund', 'Shipping', 'Contact Us'] },
+            { title: 'For Users', links: ['Login', 'Register', 'Settings', 'My Orders'] },
+          ].map((section, index) => (
+            <div key={index} className="flex flex-col space-y-2">
+              <h4 className="text-lg font-medium text-gray-900">{section.title}</h4>
+              {section.links.map((link, i) => (
+                <a
+                  key={i}
+                  href="#"
+                  onClick={link === 'Categories' ? goToCategories : undefined}
+                  className="text-gray-500 text-sm hover:text-[#0d6efd] transition"
+                >
+                  {link}
                 </a>
               ))}
             </div>
-          </div>
-
-          {/* Middle & Right Columns */}
-          <div className="footer-columns">
-            <div className="footer-col">
-              <h4>About</h4>
-              <a href="#">About Us</a>
-              <a href="#">Find store</a>
-              <a onClick={goToCategories}>Categories</a>
-              <a href="#">Blogs</a>
-            </div>
-
-            <div className="footer-col">
-              <h4>Partnership</h4>
-              <a href="#">About Us</a>
-              <a href="#">Find store</a>
-              <a onClick={goToCategories}>Categories</a>
-              <a href="#">Blogs</a>
-            </div>
-
-            <div className="footer-col">
-              <h4>Information</h4>
-              <a href="#">Help Center</a>
-              <a href="#">Money Refund</a>
-              <a href="#">Shipping</a>
-              <a href="#">Contact us</a>
-            </div>
-
-            <div className="footer-col">
-              <h4>For users</h4>
-              <a onClick={() => goToAuth('login')}>Login</a>
-              <a onClick={() => goToAuth('signup')}>Register</a>
-              <a href="#">Settings</a>
-              <a href="#">My Orders</a>
-            </div>
-
-            <div className="footer-col">
-              <h4>Get app</h4>
-              <a
-                href="https://www.apple.com/app-store/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="/images/icons/appstore.png"
-                  alt="App Store"
-                  className="store-icon"
-                />
-              </a>
-              <a
-                href="https://play.google.com/store"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="/images/icons/playstore.png"
-                  alt="Play Store"
-                  className="store-icon"
-                />
-              </a>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Bottom Footer */}
-        <div className="footer-bottom">
+        {/* Right Section (Get App) */}
+        <div className="flex flex-col items-center lg:items-start space-y-3 w-full lg:w-auto text-center lg:text-left mt-6 lg:mt-0">
+          <h4 className="text-lg font-medium text-gray-900">Get App</h4>
+          <div className="flex flex-col lg:flex-row gap-3">
+            <a href="https://www.apple.com/app-store/" target="_blank" rel="noopener noreferrer">
+              <Image src="/images/icons/appstore.png" alt="App Store" width={128} height={40} />
+            </a>
+            <a href="https://play.google.com/store" target="_blank" rel="noopener noreferrer">
+              <Image src="/images/icons/playstore.png" alt="Play Store" width={128} height={40} />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="bg-gray-100 border-t border-gray-300 py-4">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-gray-600 text-sm px-5">
           <p>© 2023 Ecommerce.</p>
-          <div className="language">
-            <img src="/images/us.png" alt="US" className="flag" />
+          <div className="flex items-center gap-2 mt-2 sm:mt-0">
+            <Image src="/images/us.png" alt="US" width={20} height={14} />
             <span>English</span>
-            <span className="arrow">⌄</span>
+            <span className="text-xs">⌄</span>
           </div>
         </div>
-      </footer>
-
-      {/* Scoped styles */}
-      <style jsx>{`
-        .footer {
-          background: #fff;
-          font-family: 'Inter', sans-serif;
-          width: 100%;
-        }
-
-        .footer-top {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: space-between;
-          gap: 40px;
-          padding: 40px 80px;
-        }
-
-        .footer-col {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          min-width: 120px;
-        }
-
-        .footer-col h4 {
-          font-size: 16px;
-          font-weight: 500;
-          color: #1c1c1c;
-          margin-bottom: 4px;
-        }
-
-        .footer-col a {
-          color: #8b96a5;
-          font-size: 16px;
-          text-decoration: none;
-          cursor: pointer;
-        }
-
-        .footer-col a:hover {
-          color: #0d6efd;
-        }
-
-        .brand {
-          max-width: 240px;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .logo-icon {
-          background: #8cb7f5;
-          padding: 8px;
-          border-radius: 8px;
-          opacity: 0.8;
-        }
-
-        .logo-icon img {
-          width: 24px;
-          height: 24px;
-        }
-
-        .logo-text {
-          font-size: 24px;
-          font-weight: 700;
-          color: #0d6efd;
-        }
-
-        .description {
-          color: #505050;
-          font-size: 16px;
-          margin: 16px 0;
-          line-height: 1.5;
-        }
-
-        .social-icons {
-          display: flex;
-          gap: 12px;
-        }
-
-        .social-icons img {
-          width: 32px;
-          height: 32px;
-        }
-
-        .footer-columns {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 40px;
-        }
-
-        .store-icon {
-          width: 120px;
-          margin-top: 8px;
-        }
-
-        .footer-bottom {
-          background: #eff2f4;
-          border-top: 1px solid #dee2e7;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 80px;
-          font-size: 16px;
-          color: #606060;
-        }
-
-        .language {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .flag {
-          width: 20px;
-          height: 14px;
-          object-fit: cover;
-          border-radius: 2px;
-        }
-
-        .arrow {
-          font-size: 10px;
-          color: #1c1c1c;
-        }
-
-        @media (max-width: 768px) {
-          .footer-top {
-            flex-direction: column;
-            padding: 40px 24px;
-          }
-
-          .footer-bottom {
-            flex-direction: column;
-            gap: 8px;
-            padding: 16px 24px;
-          }
-        }
-      `}</style>
-    </>
+      </div>
+    </footer>
   );
 };
 

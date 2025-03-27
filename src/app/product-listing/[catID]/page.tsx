@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 
 /**
  * A small reusable component for each collapsible sidebar section.
@@ -15,7 +17,7 @@ function CollapsibleSection({
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
-  const [isOpen, setIsOpen] = React.useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="collapsible-section">
@@ -23,7 +25,7 @@ function CollapsibleSection({
         <h4 className="collapsible-title">{title}</h4>
         <span className="collapsible-icon">
           <img
-            src="/images/arrow.png" // Make sure this arrow.png is DOWN by default
+            src="/images/arrow.png" // arrow.png should be down by default
             alt="toggle arrow"
             className={`arrow-img ${isOpen ? "arrow-open" : "arrow-closed"}`}
           />
@@ -34,32 +36,85 @@ function CollapsibleSection({
   );
 }
 
-export default function ProductListingPage() {
-  // State to track current view mode: 'grid' or 'list'
-  const [viewMode, setViewMode] = React.useState("grid");
+/** Product interface using 'name' to match your schema */
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  description: string;
+  // add other fields as needed (e.g., image, rating, etc.)
+}
 
-  // Handlers for toggling the view
+/** Category interface */
+interface Category {
+  _id: string;
+  name: string;
+}
+
+export default function ProductListingPage() {
+  const { catID } = useParams();
+  const [viewMode, setViewMode] = useState("grid");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  // Handlers for toggling the view mode
   const handleGridClick = () => setViewMode("grid");
   const handleListClick = () => setViewMode("list");
+
+  // Fetch products for the given category
+  useEffect(() => {
+    if (!catID) return;
+    fetch(`/api/shop/product-list/${catID}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Fetched products:", data.products);
+        setProducts(data.products || []);
+      })
+      .catch((err) => console.error("Error fetching products:", err));
+  }, [catID]);
+
+  // Fetch categories for the sidebar
+  useEffect(() => {
+    fetch("/api/shop/categories")
+      .then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
+      .then((data) => {
+        setCategories(data.categories || []);
+      })
+      .catch((err) => console.error("Error fetching categories:", err));
+  }, []);
+
+  // Find the current category by matching catID to display its name
+  const currentCategory = categories.find((cat) => cat._id === catID);
 
   return (
     <div className="product-listing-container">
       {/* LEFT SIDEBAR WITH COLLAPSIBLE SECTIONS */}
       <aside className="sidebar-filters">
-        {/* Categories */}
+        {/* Dynamic Categories */}
         <CollapsibleSection title="Category">
           <ul className="filter-list">
-            <li>Mobile accessory</li>
-            <li>Electronics</li>
-            <li>Smartphones</li>
-            <li>Modern tech</li>
+            {categories.length > 0 ? (
+              categories.map((category) => (
+                <li key={category._id}>
+                  {/* Link to the product listing for each category */}
+                  <Link href={`/product-listing/${category._id}`}>
+                    {category.name}
+                  </Link>
+                </li>
+              ))
+            ) : (
+              <li>No categories available</li>
+            )}
           </ul>
           <a href="#" className="see-all">
             See all
           </a>
         </CollapsibleSection>
 
-        {/* Brands */}
+        {/* Other collapsible sections */}
         <CollapsibleSection title="Brands">
           <div className="checkbox-row">
             <input type="checkbox" id="brandSamsung" />
@@ -86,7 +141,6 @@ export default function ProductListingPage() {
           </a>
         </CollapsibleSection>
 
-        {/* Features */}
         <CollapsibleSection title="Features">
           <div className="checkbox-row">
             <input type="checkbox" id="featureMetallic" />
@@ -110,7 +164,6 @@ export default function ProductListingPage() {
           </div>
         </CollapsibleSection>
 
-        {/* Price Range */}
         <CollapsibleSection title="Price range">
           <div className="price-inputs">
             <div>
@@ -122,18 +175,14 @@ export default function ProductListingPage() {
               <input type="number" placeholder="999999" />
             </div>
           </div>
-
-          {/* Visual range bar (no real slider logic) */}
           <div className="range-bar">
             <div className="range-active"></div>
             <div className="range-control left-control"></div>
             <div className="range-control right-control"></div>
           </div>
-
           <button className="apply-button">APPLY</button>
         </CollapsibleSection>
 
-        {/* Condition */}
         <CollapsibleSection title="Condition">
           <div className="checkbox-row">
             <input type="checkbox" id="condAny" />
@@ -153,9 +202,7 @@ export default function ProductListingPage() {
           </div>
         </CollapsibleSection>
 
-        {/* Rating */}
         <CollapsibleSection title="Ratings">
-          {/* 5 Stars */}
           <div className="checkbox-row">
             <input type="checkbox" id="rating5" />
             <label htmlFor="rating5">
@@ -168,7 +215,6 @@ export default function ProductListingPage() {
               </div>
             </label>
           </div>
-          {/* 4 Stars */}
           <div className="checkbox-row">
             <input type="checkbox" id="rating4" />
             <label htmlFor="rating4">
@@ -181,7 +227,6 @@ export default function ProductListingPage() {
               </div>
             </label>
           </div>
-          {/* 3 Stars */}
           <div className="checkbox-row">
             <input type="checkbox" id="rating3" />
             <label htmlFor="rating3">
@@ -194,7 +239,6 @@ export default function ProductListingPage() {
               </div>
             </label>
           </div>
-          {/* 2 Stars */}
           <div className="checkbox-row">
             <input type="checkbox" id="rating2" />
             <label htmlFor="rating2">
@@ -207,7 +251,6 @@ export default function ProductListingPage() {
               </div>
             </label>
           </div>
-          {/* 1 Star */}
           <div className="checkbox-row">
             <input type="checkbox" id="rating1" />
             <label htmlFor="rating1">
@@ -228,21 +271,18 @@ export default function ProductListingPage() {
         <div className="top-bar">
           <div className="top-bar-inner">
             <div className="top-bar-left">
-              <p className="top-bar-text">12,911 items in Mobile accessory</p>
+              <p className="top-bar-text">
+                {products.length} items in category:{" "}
+                {currentCategory ? currentCategory.name : catID}
+              </p>
             </div>
             <div className="top-bar-right">
               <div className="verified-only">
                 <input type="checkbox" id="verifiedOnly" defaultChecked />
                 <label htmlFor="verifiedOnly">Verified only</label>
               </div>
-
               <div className="selectbox-done">
-                <span
-                  className="selectbox-text"
-                  style={{ fontFamily: "Inter, sans-serif" }}
-                >
-                  Featured
-                </span>
+                <span className="selectbox-text">Featured</span>
                 <span className="selectbox-icon">
                   <img
                     src="/images/arrow-d.png"
@@ -251,7 +291,6 @@ export default function ProductListingPage() {
                   />
                 </span>
               </div>
-
               <div className="btn-group">
                 <button
                   className={`btn-grid ${viewMode === "grid" ? "active" : ""}`}
@@ -282,89 +321,37 @@ export default function ProductListingPage() {
 
         {/* Product listing cards */}
         <div className={`products-wrapper ${viewMode}-view`}>
-          {/* Example product card */}
-          <div className="product-card">
-            <button className="btn-favorite" aria-label="Add to wishlist">
-              <img
-                src="/images/cart-button.png"
-                alt="Add to cart"
-                className="favorite-icon"
-              />
-            </button>
-            <div className="product-image">
-              <div className="image-placeholder">Image Here</div>
-            </div>
-            <div className="product-details">
-              <h3 className="product-title">Canon Camera EOS 2000</h3>
-              <div className="product-price">
-                <span className="price">$998.00</span>
-                <span className="old-price">$1,298.00</span>
-              </div>
-              <div className="product-rating">
-                <div className="stars">
-                  <span className="star star-active"></span>
-                  <span className="star star-active"></span>
-                  <span className="star star-active"></span>
-                  <span className="star star-active"></span>
-                  <span className="star"></span>
+          {products.length > 0 ? (
+            products.map((product) => (
+              <div key={product._id} className="product-card">
+                <button className="btn-favorite" aria-label="Add to wishlist">
+                  <img
+                    src="/images/cart-button.png"
+                    alt="Add to cart"
+                    className="favorite-icon"
+                  />
+                </button>
+                <div className="product-image">
+                  <div className="image-placeholder">Image Here</div>
                 </div>
-                <span className="rating-text">7.5</span>
-                <span className="dot-separator"></span>
-                <span className="free-shipping">Free Shipping</span>
-              </div>
-              <p className="product-description">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-                eiusmod tempor incididunt ut labore.
-              </p>
-              <a href="#" className="view-details">
-                View details
-              </a>
-            </div>
-          </div>
-
-          {/* Another product card */}
-          <div className="product-card">
-            <button className="btn-favorite" aria-label="Add to wishlist">
-              <img
-                src="/images/cart-button.png"
-                alt="Add to cart"
-                className="favorite-icon"
-              />
-            </button>
-            <div className="product-image">
-              <div className="image-placeholder">Image Here</div>
-            </div>
-            <div className="product-details">
-              <h3 className="product-title">GoPro HERO9 4K Action Camera</h3>
-              <div className="product-price">
-                <span className="price">$998.00</span>
-                <span className="old-price hidden">$1,198.00</span>
-              </div>
-              <div className="product-rating">
-                <div className="stars">
-                  <span className="star star-active"></span>
-                  <span className="star star-active"></span>
-                  <span className="star star-active"></span>
-                  <span className="star star-active"></span>
-                  <span className="star"></span>
+                <div className="product-details">
+                  <h3 className="product-title">{product.name}</h3>
+                  <div className="product-price">
+                    <span className="price">${product.price}</span>
+                  </div>
+                  <p className="product-description">{product.description}</p>
+                  <a href="#" className="view-details">
+                    View details
+                  </a>
                 </div>
-                <span className="rating-text">7.5</span>
-                <span className="dot-separator"></span>
-                <span className="free-shipping">Free Shipping</span>
               </div>
-              <p className="product-description">
-                Ut enim ad minim veniam, quis nostrud exercitation ullamco
-                laboris nisi ut aliquip ex ea commodo consequat.
-              </p>
-              <a href="#" className="view-details">
-                View details
-              </a>
-            </div>
-          </div>
-          {/* ...repeat more product-card blocks as needed... */}
+            ))
+          ) : (
+            <p>No products found for this category.</p>
+          )}
         </div>
 
-        {/* PAGINATION (connected buttons) */}
+        {/* PAGINATION (if needed) */}
         <div className="pagination-container">
           <button className="page-btn disabled">&lt;</button>
           <button className="page-btn active">1</button>
@@ -378,40 +365,30 @@ export default function ProductListingPage() {
 
       {/* --- STYLES (inline for demonstration) --- */}
       <style jsx>{`
-        /****************************
-         * PAGE LAYOUT
-         ****************************/
+        /* PAGE LAYOUT */
         .product-listing-container {
           display: flex;
           margin: 0 auto;
           padding: 1rem;
           max-width: 1400px;
         }
-
-        /****************************
-         * SIDEBAR
-         ****************************/
+        /* SIDEBAR */
         .sidebar-filters {
           width: 240px;
           margin-right: 2rem;
         }
-
-        /* Collapsible sections have a top border for separation */
         .collapsible-section {
           border-top: 1px solid #dee2e7;
           padding-top: 1rem;
           margin-bottom: 1rem;
         }
-
-        /* Collapsible header: title on left, arrow on far right */
         .collapsible-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* Title on the left, arrow on the far right */
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-}
-
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          cursor: pointer;
+          margin-bottom: 0.5rem;
+        }
         .collapsible-title {
           font-family: "Inter", sans-serif;
           font-weight: 600;
@@ -428,18 +405,15 @@ export default function ProductListingPage() {
           height: 16px;
           transition: transform 0.2s;
         }
-        /* If arrow.png is down by default: rotate(0deg) = down, rotate(180deg) = up */
         .arrow-open {
           transform: rotate(180deg);
         }
         .arrow-closed {
           transform: rotate(0deg);
         }
-
         .collapsible-body {
           margin-top: 0.5rem;
         }
-
         .filter-list {
           list-style: none;
           margin: 0;
@@ -471,10 +445,7 @@ export default function ProductListingPage() {
           font-size: 14px;
           color: #1c1c1c;
         }
-
-        /****************************
-         * PRICE RANGE
-         ****************************/
+        /* PRICE RANGE */
         .price-inputs {
           display: flex;
           gap: 1rem;
@@ -537,10 +508,7 @@ export default function ProductListingPage() {
           cursor: pointer;
           font-family: "Inter", sans-serif;
         }
-
-        /****************************
-         * RATING STARS
-         ****************************/
+        /* RATING STARS */
         .stars {
           display: inline-flex;
           gap: 2px;
@@ -554,10 +522,7 @@ export default function ProductListingPage() {
         .star-active {
           background: url("/images/star-filled.png") no-repeat center/cover;
         }
-
-        /****************************
-         * MAIN CONTENT + TOP BAR
-         ****************************/
+        /* MAIN CONTENT + TOP BAR */
         .main-content {
           flex: 1;
           position: relative;
@@ -597,8 +562,6 @@ export default function ProductListingPage() {
           margin: 0 1rem;
           font-family: "Inter", sans-serif;
         }
-
-        /* Sort selectbox */
         .selectbox-done {
           position: relative;
           width: 172px;
@@ -625,8 +588,6 @@ export default function ProductListingPage() {
           height: 8px;
           margin-left: 4px;
         }
-
-        /* Grid / List toggle buttons */
         .btn-group {
           display: flex;
           gap: 0.25rem;
@@ -652,10 +613,7 @@ export default function ProductListingPage() {
           height: 100%;
           object-fit: contain;
         }
-
-        /****************************
-         * PRODUCT CARDS
-         ****************************/
+        /* PRODUCT CARDS */
         .products-wrapper {
           display: flex;
           flex-direction: column;
@@ -791,20 +749,15 @@ export default function ProductListingPage() {
           color: #0d6efd;
           text-decoration: none;
         }
-
-        /****************************
-         * PAGINATION
-         ****************************/
+        /* PAGINATION */
         .pagination-container {
-          /* Single container with border for all buttons */
           display: inline-flex;
           border: 1px solid #dee2e7;
           border-radius: 6px;
           overflow: hidden;
-          margin: 2rem auto 0 auto; /* center horizontally */
+          margin: 2rem auto 0 auto;
         }
         .page-btn {
-          /* No individual borders; rely on container's border */
           border: none;
           background: #fff;
           padding: 8px 16px;
@@ -814,7 +767,6 @@ export default function ProductListingPage() {
           font-size: 16px;
           transition: background 0.2s ease;
         }
-        /* Thin divider between each button */
         .page-btn + .page-btn {
           border-left: 1px solid #dee2e7;
         }

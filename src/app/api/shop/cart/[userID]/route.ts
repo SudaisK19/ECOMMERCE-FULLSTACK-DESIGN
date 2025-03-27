@@ -5,18 +5,22 @@ import mongoose from "mongoose"; // Import mongoose for ObjectId type
 
 connect();
 
-// Define the CartItem interface (if not already defined elsewhere)
 interface CartItem {
-  _id: mongoose.Types.ObjectId;
-  productId: mongoose.Types.ObjectId;
-  quantity: number;
-  // Add other fields as needed
+  _id: string;           // The unique cart item ID from MongoDB.
+  productId: string;     // The product's ID (populated via server populate).
+  name?: string;         // Product name.
+  price?: number;        // Product price.
+  stock?: number;        // Product stock.
+  quantity: number;      // Quantity in the cart.
+  images?: string[];     // Array of image URLs from the product.
 }
 
 // GET /api/shop/cart/[userID]
-export async function GET(request: NextRequest, { params }: { params: { userID: string } }) {
+export async function GET(request: NextRequest) {
   try {
-    const { userID } = params;
+    // Extract userID from the URL path
+    const pathSegments = request.nextUrl.pathname.split("/");
+    const userID = pathSegments[pathSegments.length - 1];  // This assumes the userID is the last segment
 
     // Fetch the cart by userId and populate the product data
     const cart = await Cart.findOne({ userId: userID }).populate({
@@ -36,9 +40,11 @@ export async function GET(request: NextRequest, { params }: { params: { userID: 
 }
 
 // PUT /api/shop/cart/[userID]
-export async function PUT(request: NextRequest, { params }: { params: { userID: string } }) {
+export async function PUT(request: NextRequest) {
   try {
-    const { userID } = params;
+    // Extract userID from the URL path
+    const pathSegments = request.nextUrl.pathname.split("/");
+    const userID = pathSegments[pathSegments.length - 1];  // This assumes the userID is the last segment
     
     const body = await request.json();
     const { items } = body;
@@ -69,9 +75,12 @@ export async function PUT(request: NextRequest, { params }: { params: { userID: 
 }
 
 // DELETE /api/shop/cart/[userID]?itemId=xxx
-export async function DELETE(request: NextRequest, { params }: { params: { userID: string } }) {
+export async function DELETE(request: NextRequest) {
   try {
-    const { userID } = params;
+    // Extract userID from the URL path
+    const pathSegments = request.nextUrl.pathname.split("/");
+    const userID = pathSegments[pathSegments.length - 1];  // This assumes the userID is the last segment
+    
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get("itemId");
     

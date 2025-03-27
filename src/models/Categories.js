@@ -12,12 +12,12 @@ const CategorySchema = new mongoose.Schema(
     },
     parentCategory: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Categories",
-      default: null, // For subcategories; null if no parent exists
+      ref: "Category",
+      default: null, // For subCategory; null if no parent exists
     },
   },
   { timestamps: true }
 );
 
-const Categories = mongoose.models.Categories || mongoose.model("Categories", CategorySchema);
-export default Categories;
+const Category = mongoose.models.Category || mongoose.model("Category", CategorySchema);
+export default Category;

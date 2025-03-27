@@ -1,7 +1,7 @@
 
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConfig/dbConfig";
-import Cart from "@/models/Cart";
+import Cart from "@/models/cartModel";
 
 connect();
 

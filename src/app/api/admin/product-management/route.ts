@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connect } from "@/dbConfig/dbConfig";
-import Product from "@/models/Products";
-import Category from "@/models/Categories";
+import Product from "@/models/productModel";
+import Category from "@/models/categoryModel";
 
 // Connect to the database immediately
 connect();

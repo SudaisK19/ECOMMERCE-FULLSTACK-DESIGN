@@ -3,6 +3,23 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 
+
+// Type definition for product details when populated from MongoDB.
+interface ProductDetails {
+  _id: string;
+  name?: string;
+  price?: number;
+  stock?: number;
+  images?: string[];
+}
+
+// Type definition for items retrieved from the backend.
+interface BackendCartItem {
+  _id: string;
+  productId: string | ProductDetails; // Can be a string (if not populated) or an object (if populated).
+  quantity: number;
+}
+
 // Type definition for each cart item.
 interface CartItem {
   _id: string;           // The unique cart item ID from MongoDB.
@@ -21,14 +38,17 @@ export default function CartPage() {
   const [savedItems, setSavedItems] = useState<CartItem[]>([]);
 
   // Helper: transform items to have top-level name, price, stock, images, and productId as string.
-  const transformItem = (item: any) => ({
-    ...item,
-    name: item.productId?.name,
-    price: item.productId?.price,
-    stock: item.productId?.stock,
-    images: item.productId?.images, // include images from the product
-    productId: item.productId?._id ?? item.productId,
-  });
+ // ✅ Insert the updated `transformItem` function here.
+const transformItem = (item: BackendCartItem): CartItem => ({
+  _id: item._id,
+  name: (item.productId as ProductDetails)?.name,
+  price: (item.productId as ProductDetails)?.price,
+  stock: (item.productId as ProductDetails)?.stock,
+  images: (item.productId as ProductDetails)?.images,
+  productId:
+    typeof item.productId === "string" ? item.productId : item.productId._id,
+  quantity: item.quantity,
+});
 
   // 1. Load cart on mount (from local storage and server)
   useEffect(() => {

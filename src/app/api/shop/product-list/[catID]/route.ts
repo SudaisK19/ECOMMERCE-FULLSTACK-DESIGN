@@ -5,14 +5,9 @@ import Product from "@/models/Products";
 // Ensure database connection
 connect();
 
-// Define the type for the context parameter
-interface Context {
-  params: { catID: string };
-}
-
-export async function GET(request: NextRequest, context: Context) {
+export async function GET(request: NextRequest, { params }: { params: { catID: string } }) {
   try {
-    const { catID } = context.params;
+    const { catID } = params;
 
     if (!catID) {
       return NextResponse.json(

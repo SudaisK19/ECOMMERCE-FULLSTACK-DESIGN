@@ -1,8 +1,17 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConfig/dbConfig";
 import Cart from "@/models/Cart";
+import mongoose from "mongoose"; // Import mongoose for ObjectId type
 
 connect();
+
+// Define the CartItem interface (if not already defined elsewhere)
+interface CartItem {
+  _id: mongoose.Types.ObjectId;
+  productId: mongoose.Types.ObjectId;
+  quantity: number;
+  // Add other fields as needed
+}
 
 // GET /api/shop/cart/[userID]
 export async function GET(
@@ -81,8 +90,9 @@ export async function DELETE(
     }
 
     if (itemId) {
+      // Use the CartItem type instead of any
       cart.items = cart.items.filter(
-        (item: any) => item._id.toString() !== itemId
+        (item: CartItem) => item._id.toString() !== itemId
       );
       await cart.save();
 

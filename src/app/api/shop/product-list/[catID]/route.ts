@@ -5,10 +5,12 @@ import Product from "@/models/Products";
 // Ensure database connection
 connect();
 
-export async function GET(request: NextRequest, { params }: { params: { catID: string } }) {
+export async function GET(request: NextRequest) {
   try {
-    const { catID } = params;
-
+    // Extract catID from the URL path
+    const pathSegments = request.nextUrl.pathname.split("/");
+    const catID = pathSegments[pathSegments.length - 1]; // This assumes the catID is the last segment
+    
     if (!catID) {
       return NextResponse.json(
         { error: "Category ID is required" },

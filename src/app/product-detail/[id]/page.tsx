@@ -56,13 +56,7 @@ export default function ProductDetail() {
     <div className="w-full bg-[#f7fafc] min-h-screen justify-center  p-6 font-['Inter']">
       <div className="max-w-7xl mx-auto p-6 bg-white  rounded-lg">
         
-        {/* Breadcrumb */}
-        <nav className="text-sm text-gray-500 mb-4">
-          <Link href="/" className="hover:underline">Home</Link> &gt;
-          <Link href="/" className="hover:underline mx-1">Clothing</Link> &gt;
-          <Link href="/" className="hover:underline mx-1">Men's wear</Link> &gt;
-          <span className="text-gray-700">Summer clothing</span>
-        </nav>
+        
 
         {/* Main Container */}
         <div className="grid grid-cols-12 gap-6">

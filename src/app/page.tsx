@@ -1,10 +1,11 @@
+
 "use client";
 
 import Image from "next/image";
 import React from "react";
 import { useRouter } from "next/navigation";
 import DealsSection from "@/components/DealsSection"; 
-import Recommended from "@/components/Recommeded"; 
+import Recommended from "@/components/Recommended";
 import RequestQuote from "@/components/RequestQuote"; 
 import RItems from "@/components/RItems"; 
 import Extra from "@/components/Extra"; 
@@ -84,13 +85,13 @@ export default function Home() {
               {/* Buttons */}
               <button
                 className="mt-3 w-full bg-blue-600 text-white py-2 rounded-md text-sm font-regular"
-                onClick={() => router.push('/signup')}
+                onClick={() => router.push('/auth')}
               >
                 Join now
               </button>
               <button
                 className="mt-2 w-full bg-white text-[#0D6EFD] py-2 rounded-md text-sm font-regular hover:bg-gray-100"
-                onClick={() => router.push('/login')}
+                onClick={() => router.push('/auth')}
               >
                 Log in
               </button> 

@@ -1,19 +1,31 @@
 
+import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConfig/dbConfig";
-import Cart from "@/models/cartModel";
-
-import { NextRequest, NextResponse } from "next/server"; // Ensure NextResponse is imported
+import Cart from "@/models/Cart";
 
 connect();
 
-export async function GET(request: NextRequest, { params }: { params: { userID: string } }) {
+interface CartItem {
+  _id: string;           // The unique cart item ID from MongoDB.
+  productId: string;     // The product's ID (populated via server populate).
+  name?: string;         // Product name.
+  price?: number;        // Product price.
+  stock?: number;        // Product stock.
+  quantity: number;      // Quantity in the cart.
+  images?: string[];     // Array of image URLs from the product.
+}
+
+// GET /api/shop/cart/[userID]
+export async function GET(request: NextRequest) {
   try {
-    const { userID } = params; // No need to resolve params with Promise.resolve here.
+    // Extract userID from the URL path
+    const pathSegments = request.nextUrl.pathname.split("/");
+    const userID = pathSegments[pathSegments.length - 1];  // This assumes the userID is the last segment
 
     // Fetch the cart by userId and populate the product data
     const cart = await Cart.findOne({ userId: userID }).populate({
       path: "items.productId",
-      select: "name price stock images",
+      select: "name price stock images"
     });
 
     if (!cart) {
@@ -27,24 +39,20 @@ export async function GET(request: NextRequest, { params }: { params: { userID: 
   }
 }
 
-// Define a CartItem type
-type CartItem = {
-  productId: { name: string; price: number; stock: number; images: string[] };
-  quantity: number;
-  _id: string;
-};
-
-export async function PUT(request: NextRequest, { params }: { params: { userID: string } }) {
+// PUT /api/shop/cart/[userID]
+export async function PUT(request: NextRequest) {
   try {
-    const { userID } = params; // No need to resolve params with Promise.resolve here.
-
+    // Extract userID from the URL path
+    const pathSegments = request.nextUrl.pathname.split("/");
+    const userID = pathSegments[pathSegments.length - 1];  // This assumes the userID is the last segment
+    
     const body = await request.json();
-    const { items }: { items: CartItem[] } = body; // Specify the type of items
-
+    const { items } = body;
+    
     if (!Array.isArray(items)) {
       return NextResponse.json({ error: "Items must be an array" }, { status: 400 });
     }
-
+    
     let cart = await Cart.findOne({ userId: userID });
     if (!cart) {
       cart = new Cart({ userId: userID, items });
@@ -56,7 +64,7 @@ export async function PUT(request: NextRequest, { params }: { params: { userID: 
     // Re-fetch the cart with populated product data
     const populatedCart = await Cart.findOne({ userId: userID }).populate({
       path: "items.productId",
-      select: "name price stock images",
+      select: "name price stock images"
     });
 
     return NextResponse.json({ cart: populatedCart });
@@ -66,25 +74,31 @@ export async function PUT(request: NextRequest, { params }: { params: { userID: 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { userID: string } }) {
+// DELETE /api/shop/cart/[userID]?itemId=xxx
+export async function DELETE(request: NextRequest) {
   try {
-    const { userID } = params; // No need to resolve params with Promise.resolve here.
+    // Extract userID from the URL path
+    const pathSegments = request.nextUrl.pathname.split("/");
+    const userID = pathSegments[pathSegments.length - 1];  // This assumes the userID is the last segment
+    
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get("itemId");
-
+    
     const cart = await Cart.findOne({ userId: userID });
     if (!cart) {
       return NextResponse.json({ error: "Cart not found" }, { status: 404 });
     }
 
     if (itemId) {
-      cart.items = cart.items.filter((item: CartItem) => item._id.toString() !== itemId); // Use the CartItem type
+      cart.items = cart.items.filter(
+        (item: CartItem) => item._id.toString() !== itemId
+      );
       await cart.save();
 
       // Re-fetch with population
       const populatedCart = await Cart.findOne({ userId: userID }).populate({
         path: "items.productId",
-        select: "name price stock images",
+        select: "name price stock images"
       });
 
       return NextResponse.json({ cart: populatedCart });

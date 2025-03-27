@@ -2,19 +2,20 @@ import { NextResponse } from "next/server";
 import Product from "@/models/productModel";
 import { connect } from "@/dbConfig/dbConfig";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } } // Correct way to extract params in App Router API routes
-) {
+export async function GET(req: Request) {
   try {
     await connect();
 
-    if (!params || !params.id) {
+    // Extract the product ID from the URL path
+    const pathSegments = req.url.split("/");
+    const productId = pathSegments[pathSegments.length - 1]; // Assuming the ID is the last segment
+
+    if (!productId) {
       return NextResponse.json({ success: false, message: "Product ID is required" }, { status: 400 });
     }
 
     // Fetch product by ID
-    const product = await Product.findById(params.id);
+    const product = await Product.findById(productId);
 
     if (!product) {
       return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });

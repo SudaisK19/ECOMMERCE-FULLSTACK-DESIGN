@@ -2,23 +2,24 @@ import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConfig/dbConfig";
 import Product from "@/models/Products";
 
+// Ensure database connection
 connect();
 
-interface Params {
-  params: {
-    catID: string;
-  };
-}
-
-export async function GET(request: NextRequest, context: Params) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { catID: string } }
+) {
   try {
-    const { catID } = context.params;
+    const { catID } = params;
 
     if (!catID) {
-      return NextResponse.json({ error: "Category ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Category ID is required" },
+        { status: 400 }
+      );
     }
 
-    // Fetch products and include the images array
+    // Fetch products based on category
     const products = await Product.find({ category: catID }).select(
       "name price description images"
     );

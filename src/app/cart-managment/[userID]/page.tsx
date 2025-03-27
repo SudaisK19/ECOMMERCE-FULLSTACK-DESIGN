@@ -536,33 +536,45 @@ export default function CartPage() {
           color: #505050;
           margin-bottom: 8px;
           font-weight: 400;
-        }
-        .coupon-box {
-          display: flex;
-          align-items: center;
-          height: 40px;
-          border-radius: 6px;
-          overflow: hidden;
-          border: 1px solid #dee2e7;
-        }
-        .coupon-box input {
-          flex: 1;
-          border: none;
-          outline: none;
-          padding: 0 12px;
-          font-size: 14px;
-          color: #8b96a5;
-          background: #fff;
-        }
-        .coupon-box button {
-          border: none;
-          background: #fff;
-          color: #0d6efd;
-          font-size: 16px;
-          font-weight: 500;
-          padding: 0 12px;
-          cursor: pointer;
-        }
+        }.coupon-box {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;   /* So height includes border */
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid #dee2e7;
+  /* overflow: hidden;        <-- Remove if it cuts off text */
+}
+
+.coupon-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 0 0px;
+  font-size: 14px;
+  color: #8b96a5;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.coupon-box button {
+  margin: 0;
+  border: none;
+  outline: none;
+  background: #0d6efd;      /* Example: blue background */
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;           /* Ensures text is vertically centered */
+  padding: 0 0px;           /* Adjust horizontal space */
+  cursor: pointer;
+  height: 100%;             /* Match parent's height */
+   /* Visual separator */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;   /* So height includes border/padding */
+}
 
         .cart-summary {
           background: #fff;

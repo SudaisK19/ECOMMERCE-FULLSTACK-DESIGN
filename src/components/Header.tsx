@@ -17,6 +17,12 @@ const Header = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // --- Fallback user ID (replace with your actual user ID) ---
+  const userId = "defaultUserId"; 
+  // If you have NextAuth or any other auth, you can do:
+  // const { data: session } = useSession();
+  // const userId = session?.user?.id || "defaultUserId";
+
   // Fetch categories once on component mount
   useEffect(() => {
     fetch("/api/shop/categories")
@@ -38,7 +44,7 @@ const Header = () => {
     { icon: "profile.png", label: "Profile", link: "/profile" },
     { icon: "message.png", label: "Message" },
     { icon: "orders.png", label: "Orders" },
-    { icon: "cart.png", label: "My cart", link: "/cart-managment" },
+    { icon: "cart.png", label: "My cart", link: `/cart-managment/${userId}` },
   ];
 
   return (

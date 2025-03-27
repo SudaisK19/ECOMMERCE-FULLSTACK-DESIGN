@@ -22,7 +22,7 @@ async function resolveCategory(categoryValue: string) {
   return categoryDoc ? categoryDoc._id : null;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Populate the "category" field with only the "name" property
     const products = await Product.find({}).populate("category", "name");

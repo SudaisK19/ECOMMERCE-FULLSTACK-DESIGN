@@ -1,734 +1,591 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import Sidebarlisting from "@/components/sidebarlisting"; 
 import Image from "next/image";
 
-// Type definition for each cart item.
-interface CartItem {
-  _id: string;           // The unique cart item ID from MongoDB.
-  productId: string;     // The product's ID (populated via server populate).
-  name?: string;         // Product name.
-  price?: number;        // Product price.
-  stock?: number;        // Product stock.
-  quantity: number;      // Quantity in the cart.
-  images?: string[];     // Array of image URLs from the product.
+
+
+/** Product interface using 'name' to match your schema */
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  description: string;
+  images: string[]; // Updated to match the schema
 }
 
-export default function CartPage() {
-  const router = useRouter();
-  const { userID } = useParams(); // dynamic route parameter
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [savedItems, setSavedItems] = useState<CartItem[]>([]);
+/** Category interface */
+interface Category {
+  _id: string;
+  name: string;
+}
 
-  // Helper: transform items to have top-level name, price, stock, images, and productId as string.
-  const transformItem = (item: any) => ({
-    ...item,
-    name: item.productId?.name,
-    price: item.productId?.price,
-    stock: item.productId?.stock,
-    images: item.productId?.images, // include images from the product
-    productId: item.productId?._id ?? item.productId,
-  });
+export default function ProductListingPage() {
+  const { catID } = useParams();
+  const [viewMode, setViewMode] = useState("grid");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories] = useState<Category[]>([]);
 
-  // 1. Load cart on mount (from local storage and server)
+  // Handlers for toggling the view mode
+  const handleGridClick = () => setViewMode("grid");
+  const handleListClick = () => setViewMode("list");
+
+  // Fetch products for the given category
   useEffect(() => {
-    if (!userID) return;
-
-    // Check local storage for a cached cart
-    const localCart = localStorage.getItem(`cart-${userID}`);
-    if (localCart) {
-      setCartItems(JSON.parse(localCart));
-    }
-
-    // Fetch the latest cart data from the server
-    fetch(`/api/shop/cart/${userID}`)
+    if (!catID) return;
+    fetch(`/api/shop/product-list/${catID}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        if (data.cart && data.cart.items) {
-          const transformedItems = data.cart.items.map(transformItem);
-          setCartItems(transformedItems);
-        }
+        console.log("Fetched products:", data.products);
+        setProducts(data.products || []);
       })
-      .catch((err) => console.error("Error fetching cart:", err));
-  }, [userID]);
+      .catch((err) => console.error("Error fetching products:", err));
+  }, [catID]);
 
-  // 2. Save cart changes to local storage whenever the cart changes
-  useEffect(() => {
-    if (userID) {
-      localStorage.setItem(`cart-${userID}`, JSON.stringify(cartItems));
-    }
-  }, [cartItems, userID]);
+  
+  
 
-  // 3. Calculate the subtotal for a cart item
-  const getSubtotal = (item: CartItem) => {
-    const price = item.price ?? 0;
-    return price * item.quantity;
-  };
-
-  const totalPrice = cartItems.reduce((sum, item) => sum + getSubtotal(item), 0);
-
-  // 4. Update the cart on the server (via PUT)
-  async function updateCartOnServer(newItems: CartItem[]) {
-    try {
-      const res = await fetch(`/api/shop/cart/${userID}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: newItems }),
-      });
-      const data = await res.json();
-      if (res.ok && data.cart) {
-        const transformedItems = data.cart.items.map(transformItem);
-        setCartItems(transformedItems);
-      } else {
-        console.error("Error updating cart:", data.error);
-      }
-    } catch (err) {
-      console.error("Error updating cart:", err);
-    }
-  }
-
-  // 5. Remove a single item from the cart (via DELETE with itemId)
-  async function removeItem(itemId: string) {
-    try {
-      const res = await fetch(`/api/shop/cart/${userID}?itemId=${itemId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (res.ok && data.cart) {
-        const transformedItems = data.cart.items.map(transformItem);
-        setCartItems(transformedItems);
-      } else {
-        console.error("Error removing item:", data.error);
-      }
-    } catch (err) {
-      console.error("Error removing item:", err);
-    }
-  }
-
-  // 6. Remove all items from the cart (via DELETE without itemId)
-  async function removeAllItems() {
-    try {
-      const res = await fetch(`/api/shop/cart/${userID}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCartItems([]);
-      } else {
-        console.error("Error removing all items:", data.error);
-      }
-    } catch (err) {
-      console.error("Error removing all items:", err);
-    }
-  }
-
-  // 7. Handle quantity changes for an item
-  const handleQuantityChange = (itemId: string, newQty: number) => {
-    if (newQty < 1) return;
-    const updated = cartItems.map((item) =>
-      item._id === itemId ? { ...item, quantity: newQty } : item
-    );
-    setCartItems(updated);
-    updateCartOnServer(updated);
-  };
-
-  // 8. Save an item for later: remove from cart and add to savedItems (client side)
-  const handleSaveForLater = (itemId: string) => {
-    const itemToSave = cartItems.find((it) => it._id === itemId);
-    if (!itemToSave) return;
-    const newCart = cartItems.filter((it) => it._id !== itemId);
-    setCartItems(newCart);
-    setSavedItems((prev) => [...prev, itemToSave]);
-    updateCartOnServer(newCart);
-  };
-
-  // 9. Move an item from saved-for-later back to the cart
-  const handleMoveToCart = (itemId: string) => {
-    const itemToMove = savedItems.find((it) => it._id === itemId);
-    if (!itemToMove) return;
-    const newSaved = savedItems.filter((it) => it._id !== itemId);
-    setSavedItems(newSaved);
-    const newCart = [...cartItems, itemToMove];
-    setCartItems(newCart);
-    updateCartOnServer(newCart);
-  };
-
-  // 10. Redirect back to shopping (home page)
-  const handleBackToShopping = () => {
-    router.push("/");
-  };
+  // Find the current category by matching catID to display its name
+  const currentCategory = categories.find((cat) => cat._id === catID);
 
   return (
-    <main className="cart-page-container">
-      <h1 className="cart-page-title">My cart ({cartItems.length})</h1>
+    <div className="product-listing-container">
+      
+      <Sidebarlisting/>
+      {/* MAIN CONTENT AREA */}
+      <main className="main-content">
+        <div className="top-bar">
+          <div className="top-bar-inner">
+            <div className="top-bar-left">
+              <p className="top-bar-text">
+                {products.length} items in category:{" "}
+                {currentCategory ? currentCategory.name : catID}
+              </p>
+            </div>
+            <div className="top-bar-right">
+              <div className="verified-only">
+                <input type="checkbox" id="verifiedOnly" defaultChecked />
+                <label htmlFor="verifiedOnly">Verified only</label>
+              </div>
+              <div className="selectbox-done">
+                <span className="selectbox-text">Featured</span>
+                <span className="selectbox-icon">
+                <Image
+                  src="/images/arrow-d.png"
+                  alt="Arrow down"
+                  className="arrow-down"
+                  width={24}
+                  height={24}
+                />
 
-      <div className="cart-main">
-        {/* LEFT SIDE: CART ITEMS */}
-        <section className="cart-items-section">
-          {cartItems.length === 0 ? (
-            <p>Your cart is empty.</p>
-          ) : (
-            cartItems.map((item) => (
-              <div key={item._id} className="cart-item">
-                <div className="cart-item-img">
-                  {/* Use product image from the DB if available, otherwise fallback */}
+                </span>
+              </div>
+              <div className="btn-group">
+                <button
+                  className={`btn-grid ${viewMode === "grid" ? "active" : ""}`}
+                  onClick={handleGridClick}
+                  aria-label="Grid view"
+                >
                   <Image
-                    src={
-                      item.images && item.images.length > 0
-                        ? item.images[0]
-                        : "/images/sample-shirt.png"
-                    }
-                    alt={item.name || "Item"}
-                    width={80}
-                    height={80}
+                    src="/images/grid-button.png"
+                    alt="Grid view"
+                    className="toggle-icon"
+                    width={32}
+                    height={32}
+                  />
+
+                </button>
+                <button
+                  className={`btn-list ${viewMode === "list" ? "active" : ""}`}
+                  onClick={handleListClick}
+                  aria-label="List view"
+                >
+                  <Image
+                    src="/images/list-button.png"
+                    alt="List view"
+                    className="toggle-icon"
+                    width={32}
+                    height={32}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Product listing cards */}
+        <div className={`products-wrapper ${viewMode}-view grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 px-4`}>
+          {products.length > 0 ? (
+            products.map((product) => (
+              <div key={product._id} className="product-card bg-white shadow-md rounded-lg p-4 hover:shadow-xl transition-all">
+                {/* Wishlist Button */}
+                <button className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-transform">
+                  <Image src="/images/cart-button.png" alt="Add to cart" width={20} height={20} />
+                </button>
+
+                {/* Product Image - Handles Both Grid & List View */}
+                <div className={`product-image flex ${viewMode === 'list' ? 'flex-row items-center' : 'justify-center'}`}>
+                  <Image
+                    src={product.images?.length > 0 ? product.images[0] : "/images/default-product.png"}
+                    alt={product.name}
+                    width={viewMode === 'list' ? 100 : 250} 
+                    height={viewMode === 'list' ? 100 : 250}
+                    className={`object-cover rounded-lg ${viewMode === 'list' ? 'mr-4' : ''}`}
                   />
                 </div>
-                <div className="cart-item-content">
-                  <div className="cart-item-top">
-                    <div className="cart-item-details">
-                      <h3 className="cart-item-title">
-                        {item.name || "T-shirt"}
-                      </h3>
-                      <p className="cart-item-subtitle">
-                        Price: ${item.price?.toFixed(2)} — Stock: {item.stock ?? 0}
-                      </p>
-                    </div>
-                    <div className="cart-item-right">
-                      <div className="cart-item-price">
-                        ${(item.price ?? 0).toFixed(2)}
-                      </div>
-                      <div className="qty-box">
-                        <label className="qty-label">Qty:</label>
-                        <select
-                          value={item.quantity}
-                          onChange={(e) =>
-                            handleQuantityChange(
-                              item._id,
-                              parseInt(e.target.value)
-                            )
-                          }
-                        >
-                          {Array.from({ length: 20 }, (_, i) => i + 1).map(
-                            (num) => (
-                              <option key={num} value={num}>
-                                {num}
-                              </option>
-                            )
-                          )}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="cart-item-actions">
-                    <button
-                      className="cart-remove-btn"
-                      onClick={() => removeItem(item._id)}
-                    >
-                      Remove
-                    </button>
-                    <button
-                      className="cart-save-btn"
-                      onClick={() => handleSaveForLater(item._id)}
-                    >
-                      Save for later
-                    </button>
-                  </div>
-                  <div style={{ marginTop: "8px", fontSize: "14px" }}>
-                    Subtotal: ${getSubtotal(item).toFixed(2)}
-                  </div>
+
+                {/* Product Details */}
+                <div className="product-details text-center mt-3">
+                  <h3 className="product-title font-semibold text-gray-900">{product.name}</h3>
+                  <div className="product-price text-lg font-bold text-blue-600">${product.price}</div>
+                  <p className="product-description text-sm text-gray-600">{product.description}</p>
+
+                  {/* ✅ Next.js Link for navigation */}
+                  <Link href={`/product-detail/${product._id}`} passHref>
+                    <span className="view-details text-blue-500 hover:underline cursor-pointer">View details</span>
+                  </Link>
                 </div>
               </div>
             ))
+          ) : (
+            <p className="text-center text-gray-500 col-span-full">No products found for this category.</p>
           )}
-
-          <div className="cart-bottom-buttons">
-            <button className="back-to-shop-btn" onClick={handleBackToShopping}>
-              <span className="arrow-left">&larr;</span> Back to shop
-            </button>
-            <button className="remove-all-btn" onClick={removeAllItems}>
-              Remove All
-            </button>
-          </div>
-        </section>
-
-        {/* RIGHT SIDE: COUPON + SUMMARY */}
-        <aside className="cart-aside">
-          <div className="cart-coupon-box">
-            <p className="cart-coupon-label">Have a coupon?</p>
-            <div className="coupon-box">
-              <input type="text" placeholder="Add coupon" />
-              <button>Apply</button>
-            </div>
-          </div>
-
-          <div className="cart-summary">
-            <div className="summary-row">
-              <span>Total price:</span>
-              <span>${totalPrice.toFixed(2)}</span>
-            </div>
-            <div className="summary-row">
-              <span>Discount:</span>
-              <span className="discount">- $60.00</span>
-            </div>
-            <div className="summary-row">
-              <span>Tax:</span>
-              <span className="tax">+ $14.00</span>
-            </div>
-            <hr />
-            <div className="summary-total">
-              <span>Total:</span>
-              <span className="final-price">
-                ${(totalPrice - 60 + 14).toFixed(2)}
-              </span>
-            </div>
-            <button className="checkout-btn">Checkout</button>
-          </div>
-        </aside>
-      </div>
-
-      {/* SAVED FOR LATER SECTION */}
-      <div className="saved-for-later">
-        <h2 className="saved-title">Saved for later</h2>
-        {savedItems.length === 0 ? (
-          <p>No items saved for later.</p>
-        ) : (
-          <div className="saved-grid">
-            {savedItems.map((item) => (
-              <div key={item._id} className="saved-card">
-                <Image
-                  src={
-                    item.images && item.images.length > 0
-                      ? item.images[0]
-                      : "/images/products/tablet.png"
-                  }
-                  alt={item.name || "Saved Item"}
-                  width={80}
-                  height={80}
-                  className="saved-img"
-                />
-                <p className="saved-price">${(item.price ?? 0).toFixed(2)}</p>
-                <p className="saved-name">{item.name || "Saved Item"}</p>
-                <button
-                  className="saved-move-btn"
-                  onClick={() => handleMoveToCart(item._id)}
-                >
-                  Move to cart
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* BLUE BANNER SECTION */}
-      <div className="blue-banner">
-        <div className="banner-text">
-          <h3>Super discount on more than 100 USD</h3>
-          <p>Have you ever finally just write dummy info</p>
         </div>
-        <button className="banner-yellow-btn">
-          <Image
-            src="/images/yellow-button.png"
-            alt="Shop now"
-            width={100}
-            height={100}
-          />
-        </button>
-      </div>
 
-      {/* STYLES */}
+        {/* PAGINATION (if needed) */}
+        <div className="pagination-container">
+          <button className="page-btn disabled">&lt;</button>
+          <button className="page-btn active">1</button>
+          <button className="page-btn">2</button>
+          <button className="page-btn">3</button>
+          <button className="page-btn">...</button>
+          <button className="page-btn">10</button>
+          <button className="page-btn">&gt;</button>
+        </div>
+      </main>
+
+      {/* --- STYLES (inline for demonstration) --- */}
       <style jsx>{`
-         * {
+        /* PAGE LAYOUT */
+        .product-listing-container {
+          display: flex;
+          margin: 0 auto;
+          padding: 1rem;
+          max-width: 1400px;
+        }
+        /* SIDEBAR */
+        .sidebar-filters {
+          width: 240px;
+          margin-right: 2rem;
+        }
+        .collapsible-section {
+          border-top: 1px solid #dee2e7;
+          padding-top: 1rem;
+          margin-bottom: 1rem;
+        }
+        .collapsible-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          cursor: pointer;
+          margin-bottom: 0.5rem;
+        }
+        .collapsible-title {
+          font-family: "Inter", sans-serif;
+          font-weight: 600;
+          font-size: 16px;
+          color: #1c1c1c;
+          margin: 0;
+        }
+        .collapsible-icon {
+          display: flex;
+          align-items: center;
+        }
+        .arrow-img {
+          width: 16px;
+          height: 16px;
+          transition: transform 0.2s;
+        }
+        .arrow-open {
+          transform: rotate(180deg);
+        }
+        .arrow-closed {
+          transform: rotate(0deg);
+        }
+        .collapsible-body {
+          margin-top: 0.5rem;
+        }
+        .filter-list {
+          list-style: none;
           margin: 0;
           padding: 0;
-          box-sizing: border-box;
-        }
-
-        .cart-page-container {
-          width: 100%;
-          min-height: 100vh;
-          background: #f7fafc;
           font-family: "Inter", sans-serif;
-          padding: 40px 0;
         }
-
-        .cart-page-title {
-          font-size: 24px;
-          font-weight: 600;
-          line-height: 32px;
-          color: #1c1c1c;
-          margin-left: 40px;
-          margin-bottom: 20px;
+        .filter-list li {
+          margin-bottom: 0.5rem;
+          cursor: pointer;
         }
-
-        .cart-main {
-          display: flex;
-          gap: 20px;
-          padding: 0 40px;
-        }
-
-        .cart-items-section {
-          flex: 1;
-          background: #fff;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          padding: 20px;
-        }
-
-        .cart-item {
-          display: flex;
-          gap: 16px;
-          border-bottom: 1px solid #dee2e7;
-          padding-bottom: 20px;
-          margin-bottom: 20px;
-        }
-        .cart-item:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-        }
-
-        .cart-item-img {
-          position: relative;
-          width: 80px;
-          height: 80px;
-        }
-
-        .cart-item-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .cart-item-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-
-        .cart-item-title {
-          font-size: 16px;
-          font-weight: 500;
-          color: #1c1c1c;
-          margin-bottom: 4px;
-        }
-
-        .cart-item-subtitle {
+        .see-all {
+          display: inline-block;
+          margin-top: 0.5rem;
+          color: #0d6efd;
           font-size: 14px;
-          color: #8b96a5;
+          text-decoration: none;
+          font-family: "Inter", sans-serif;
         }
-
-        .cart-item-right {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 8px;
-        }
-
-        .cart-item-price {
-          font-size: 16px;
-          font-weight: 500;
-          color: #1c1c1c;
-        }
-
-        .qty-box {
-          position: relative;
+        .checkbox-row {
           display: flex;
           align-items: center;
+          margin-bottom: 0.5rem;
+          font-family: "Inter", sans-serif;
+        }
+        .checkbox-row input[type="checkbox"] {
+          margin-right: 0.5rem;
+        }
+        .checkbox-row label {
+          font-size: 14px;
+          color: #1c1c1c;
+        }
+        /* PRICE RANGE */
+        .price-inputs {
+          display: flex;
+          gap: 1rem;
+          margin: 0.5rem 0;
+        }
+        .price-inputs label {
+          display: block;
+          font-family: "Inter", sans-serif;
+          font-size: 14px;
+          margin-bottom: 0.25rem;
+          color: #1c1c1c;
+        }
+        .price-inputs input {
+          width: 80px;
+          padding: 4px;
+          border: 1px solid #dee2e7;
+          border-radius: 4px;
+          font-family: "Inter", sans-serif;
+        }
+        .range-bar {
+          position: relative;
+          height: 6px;
+          background: #dee2e7;
+          border-radius: 3px;
+          margin-bottom: 1rem;
+          margin-top: 0.5rem;
+        }
+        .range-active {
+          position: absolute;
+          left: 20%;
+          width: 50%;
+          top: 0;
+          bottom: 0;
+          background: #0d6efd;
+          border-radius: 3px;
+        }
+        .range-control {
+          position: absolute;
+          width: 16px;
+          height: 16px;
+          background: #ffffff;
+          border: 2px solid #0d6efd;
+          border-radius: 50%;
+          top: 50%;
+          transform: translateY(-50%);
+          cursor: pointer;
+        }
+        .left-control {
+          left: 20%;
+        }
+        .right-control {
+          left: 70%;
+        }
+        .apply-button {
+          padding: 6px 12px;
+          background: #0d6efd;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-family: "Inter", sans-serif;
+        }
+        /* RATING STARS */
+        .stars {
+          display: inline-flex;
+          gap: 2px;
+        }
+        .star {
+          width: 16px;
+          height: 16px;
+          background: url("/images/star-empty.png") no-repeat center/cover;
+          display: inline-block;
+        }
+        .star-active {
+          background: url("/images/star-filled.png") no-repeat center/cover;
+        }
+        /* MAIN CONTENT + TOP BAR */
+        .main-content {
+          flex: 1;
+          position: relative;
+        }
+        .top-bar {
+          background: #ffffff;
           border: 1px solid #dee2e7;
           border-radius: 6px;
-          height: 36px;
-          padding: 0 10px;
-          font-size: 14px;
-          color: #1c1c1c;
+          margin-bottom: 1rem;
+          padding: 0.5rem;
+          font-family: "Inter", sans-serif;
         }
-        .qty-label {
-          margin-right: 4px;
-          font-weight: 400;
-          color: #1c1c1c;
+        .top-bar-inner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
-        .qty-box select {
-          border: none;
-          outline: none;
-          background: transparent;
-          appearance: none;
-          font-size: 14px;
-          color: #1c1c1c;
+        .top-bar-right {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-right: 1rem;
+        }
+        .verified-only {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+        .verified-only input[type="checkbox"] {
+          width: 20px;
+          height: 20px;
+          background: #0d6efd;
+          border-radius: 5px;
           cursor: pointer;
-          padding-right: 16px;
         }
-        .qty-box::after {
-          content: "";
-          position: absolute;
-          right: 8px;
+        .top-bar-text {
+          margin: 0 1rem;
+          font-family: "Inter", sans-serif;
+        }
+        .selectbox-done {
+          position: relative;
+          width: 172px;
+          height: 40px;
+          border: 1px solid #dee2e7;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 0.5rem;
+          cursor: pointer;
+        }
+        .selectbox-text {
+          font-family: "Inter", sans-serif;
+          font-size: 16px;
+          color: #1c1c1c;
+        }
+        .selectbox-icon {
+          display: flex;
+          align-items: center;
+        }
+        .arrow-down {
           width: 8px;
           height: 8px;
-          border-right: 1px solid #8b96a5;
-          border-bottom: 1px solid #8b96a5;
-          transform: rotate(45deg);
-          pointer-events: none;
+          margin-left: 4px;
         }
-
-        .cart-item-actions {
+        .btn-group {
           display: flex;
-          gap: 8px;
-          margin-top: 12px;
+          gap: 0.25rem;
         }
-        .cart-remove-btn,
-        .cart-save-btn {
-          padding: 4px 10px;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          background: #ffffff;
-          font-size: 13px;
-          line-height: 16px;
-          cursor: pointer;
-          font-weight: 500;
-        }
-        .cart-remove-btn {
-          color: #fa3434;
-        }
-        .cart-save-btn {
-          color: #0d6efd;
-        }
-
-        .cart-bottom-buttons {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 20px;
-        }
-        .back-to-shop-btn {
-          background: linear-gradient(180deg, #127fff 0%, #0067ff 100%);
-          border-radius: 6px;
-          color: #fff;
-          padding: 10px 20px;
+        .btn-grid,
+        .btn-list {
+          width: 38px;
+          height: 40px;
           border: none;
-          font-size: 16px;
-          font-weight: 500;
+          background: none;
+          padding: 0;
           cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
-        .arrow-left {
-          margin-right: 5px;
+        .btn-grid.active,
+        .btn-list.active {
+          background: #eff2f4;
         }
-        .remove-all-btn {
-          border: 1px solid #dee2e7;
-          background: #ffffff;
-          border-radius: 6px;
-          padding: 0 16px;
-          font-size: 16px;
-          color: #0d6efd;
-          cursor: pointer;
+        .toggle-icon {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
         }
-
-        .cart-aside {
-          width: 280px;
+        /* PRODUCT CARDS */
+        .products-wrapper {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 1rem;
         }
-        .cart-coupon-box {
-          background: #fff;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          padding: 16px;
+        .products-wrapper.grid-view {
+          flex-direction: row;
+          flex-wrap: wrap;
         }
-        .cart-coupon-label {
-          font-size: 16px;
-          color: #505050;
-          margin-bottom: 8px;
-          font-weight: 400;
+        .products-wrapper.grid-view .product-card {
+          width: calc(33.333% - 1rem);
         }
-        .coupon-box {
-          display: flex;
-          align-items: center;
-          height: 40px;
-          border-radius: 6px;
-          overflow: hidden;
-          border: 1px solid #dee2e7;
-        }
-        .coupon-box input {
-          flex: 1;
-          border: none;
-          outline: none;
-          padding: 0 12px;
-          font-size: 14px;
-          color: #8b96a5;
-          background: #fff;
-        }
-        .coupon-box button {
-          border: none;
-          background: #fff;
-          color: #0d6efd;
-          font-size: 16px;
-          font-weight: 500;
-          padding: 0 12px;
-          cursor: pointer;
-        }
-
-        .cart-summary {
-          background: #fff;
-          border: 1px solid #dee2e7;
-          box-shadow: 0px 4px 10px rgba(56, 56, 56, 0.1);
-          border-radius: 6px;
-          padding: 16px;
-        }
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 8px;
-          font-size: 16px;
-          color: #505050;
-        }
-        .summary-row span:last-child {
-          min-width: 60px;
-          text-align: right;
-        }
-        .discount {
-          color: #fa3434;
-        }
-        .tax {
-          color: #00b517;
-        }
-        .cart-summary hr {
-          margin: 16px 0;
-          border: none;
-          border-top: 1px solid #e4e4e4;
-        }
-        .summary-total {
-          display: flex;
-          justify-content: space-between;
-          font-weight: 600;
-          margin-bottom: 16px;
-          font-size: 18px;
-          color: #1c1c1c;
-        }
-        .checkout-btn {
+        .products-wrapper.list-view .product-card {
           width: 100%;
-          height: 54px;
-          background: #00b517;
-          color: #fff;
-          font-size: 18px;
-          font-weight: 500;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
         }
-
-        .cart-info {
+        .product-card {
+          position: relative;
+          min-height: 230px;
+          border: 1px solid #dee2e7;
+          border-radius: 6px;
+          background: #ffffff;
+          padding: 1rem;
           display: flex;
-          justify-content: flex-start;
-          gap: 80px;
-          margin-top: 40px;
-          padding: 0 40px;
+          gap: 1rem;
         }
-        .info-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .info-item img {
+        .btn-favorite {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
           width: 40px;
           height: 40px;
-        }
-        .info-text h4 {
-          margin: 0 0 4px 0;
-          font-size: 16px;
-          font-weight: 500;
-          color: #1c1c1c;
-        }
-        .info-text p {
-          margin: 0;
-          font-size: 14px;
-          color: #8b96a5;
-        }
-
-        .saved-for-later {
-          margin: 40px 40px 0;
-          background: #fff;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          padding: 20px;
-        }
-        .saved-title {
-          font-size: 20px;
-          font-weight: 600;
-          color: #1c1c1c;
-          margin-bottom: 20px;
-          text-align: left;
-        }
-        .saved-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 24px;
-        }
-        .saved-card {
-          background: none;
           border: none;
-          text-align: left;
-        }
-        .saved-img {
-          position: relative;
-          width: 80px;
-          height: 80px;
-          object-fit: cover;
-          border-radius: 6px;
-          margin-bottom: 8px;
-        }
-        .saved-price {
-          font-size: 16px;
-          font-weight: 600;
-          color: #1c1c1c;
-          margin-bottom: 4px;
-        }
-        .saved-name {
-          font-size: 14px;
-          color: #8b96a5;
-          margin-bottom: 8px;
-        }
-        .saved-move-btn {
-          border: 1px solid #dee2e7;
-          background: #fff;
-          border-radius: 6px;
-          padding: 6px 16px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #0d6efd;
+          background: none;
+          padding: 0;
           cursor: pointer;
-        }
-
-        .blue-banner {
-          width: auto;
-          margin: 40px 40px;
-          background-color: #127fff;
-          border-radius: 6px;
-          padding: 20px;
           display: flex;
           align-items: center;
+          justify-content: center;
+        }
+        .favorite-icon {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+        .product-image {
+          width: 20%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff;
+        }
+        .image-placeholder {
+          background-color: #f0f0f0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #8b96a5;
+          font-size: 14px;
+          border-radius: 6px;
+          font-family: "Inter", sans-serif;
+        }
+        .product-details {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        .product-title {
+          font-family: "Inter", sans-serif;
+          font-size: 16px;
+          font-weight: 500;
+          color: #1c1c1c;
+          margin: 0;
+        }
+        .product-price {
+          margin-top: 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .price {
+          font-family: "Inter", sans-serif;
+          font-weight: 600;
+          font-size: 20px;
+          color: #1c1c1c;
+        }
+        .old-price {
+          font-family: "Inter", sans-serif;
+          font-weight: 600;
+          font-size: 16px;
+          color: #8b96a5;
+          text-decoration: line-through;
+        }
+        .old-price.hidden {
+          visibility: hidden;
+        }
+        .product-rating {
+          margin-top: 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+        .rating-text {
+          font-family: "Inter", sans-serif;
+          font-size: 16px;
+          color: #8b96a5;
+        }
+        .dot-separator {
+          width: 4px;
+          height: 4px;
+          background: #dee2e7;
+          border-radius: 50%;
+          margin: 0 0.25rem;
+        }
+        .free-shipping {
+          font-family: "Inter", sans-serif;
+          font-size: 16px;
+          color: #00b517;
+        }
+        .product-description {
+          font-family: "Inter", sans-serif;
+          font-size: 16px;
+          line-height: 24px;
+          color: #505050;
+          margin: 0.5rem 0;
+          flex: 1;
+        }
+        .view-details {
+          font-family: "Inter", sans-serif;
+          font-weight: 500;
+          font-size: 16px;
+          color: #0d6efd;
+          text-decoration: none;
+        }
+        /* PAGINATION */
+        .pagination-container {
+          display: inline-flex;
+          border: 1px solid #dee2e7;
+          border-radius: 6px;
+          overflow: hidden;
+          margin: 2rem auto 0 auto;
+        }
+        .page-btn {
+          border: none;
+          background: #fff;
+          padding: 8px 16px;
+          cursor: pointer;
+          color: #505050;
+          font-family: "Inter", sans-serif;
+          font-size: 16px;
+          transition: background 0.2s ease;
+        }
+        .page-btn + .page-btn {
+          border-left: 1px solid #dee2e7;
+        }
+        .page-btn.active {
+          background: #0d6efd;
           color: #fff;
         }
-        .banner-text {
-          text-align: left;
+        .page-btn:hover:not(.active):not(.disabled) {
+          background: #f5f5f5;
         }
-        .banner-text h3 {
-          font-size: 20px;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-        .banner-text p {
-          font-size: 16px;
-          color: #f0f0f0;
-        }
-        .banner-yellow-btn {
-          margin-left: auto;
-          background: none;
-          border: none;
-          cursor: pointer;
-        }
-        .banner-yellow-btn img {
-          display: block;
-          width: 100px;
-          height: auto;
+        .page-btn.disabled {
+          color: #ccc;
+          cursor: not-allowed;
         }
       `}</style>
-    </main>
+    </div>
   );
 }

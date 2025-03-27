@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // Update the interface so that category can be either a string or an object
 interface Product {
@@ -43,9 +44,11 @@ export default function AdminDashboard() {
         setError("Admin info not found.");
       }
     } catch (err) {
+      console.error("Error fetching admin info:", err);
       setError("Failed to fetch admin info.");
     }
   };
+  
 
   // Fetch products for product management tab
   const fetchProducts = async () => {
@@ -59,6 +62,7 @@ export default function AdminDashboard() {
         setError("No products found.");
       }
     } catch (err) {
+      console.error("Error fetching products info:", err);
       setError("Failed to fetch products.");
     }
   };
@@ -117,6 +121,7 @@ export default function AdminDashboard() {
       fetchProducts();
       setShowAddModal(false);
     } catch (err) {
+      console.error("Error adding product:", err);
       setError("Failed to add product.");
     }
   };
@@ -143,6 +148,7 @@ export default function AdminDashboard() {
       fetchProducts();
       setShowEditModal(false);
     } catch (err) {
+      console.error("Error updating product:", err);
       setError("Failed to update product.");
     }
   };
@@ -168,6 +174,7 @@ export default function AdminDashboard() {
       fetchProducts();
       setShowDeleteModal(false);
     } catch (err) {
+      console.error("Error deleting product:", err);
       setError("Failed to delete product.");
     }
   };
@@ -185,7 +192,13 @@ export default function AdminDashboard() {
       <header className="top-bar">
         <div className="top-left">
           <div className="logo-icon">
-            <img src="/images/brand-icon.png" alt="Brand Icon" />
+          <Image
+            src="/images/brand-icon.png"
+            alt="Brand Icon"
+            width={40}
+            height={40}
+          />
+
           </div>
           <span className="logo-text">Brand</span>
           <span className="admin-panel-text">Admin Panel</span>
@@ -198,12 +211,6 @@ export default function AdminDashboard() {
         <aside className="sidebar">
           <nav className="nav-links">
             <button
-              className={`nav-item ${activeTab === "dashboard" ? "active" : ""}`}
-              onClick={() => setActiveTab("dashboard")}
-            >
-              <i className="fas fa-tachometer-alt"></i> Dashboard
-            </button>
-            <button
               className={`nav-item ${activeTab === "products" ? "active" : ""}`}
               onClick={() => setActiveTab("products")}
             >
@@ -215,9 +222,15 @@ export default function AdminDashboard() {
           <div className="user-info">
             {user ? (
               <>
-                <img src="/images/avatar.png" alt="User Avatar" className="user-avatar" />
+                <Image
+                  src="/images/avatar.png"
+                  alt="User Avatar"
+                  className="user-avatar"
+                  width={50}
+                  height={50}
+                />
                 <div className="user-name">{user.name}</div>
-                <div className="user-email">{user.email}</div>  {/* Display email here */}
+                <div className="user-email">{user.email}</div> {/* Display email here */}
                 <div className="user-role">Admin</div>
               </>
             ) : (
@@ -229,33 +242,10 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
+
         {/* Main Content */}
         <main className="main-content">
-          {activeTab === "dashboard" && (
-            <div className="dashboard-charts">
-              <h2>Dashboard Charts</h2>
-              <div className="charts-row">
-                <div className="analytics-graph card">
-                  <h3>Analytics Graph</h3>
-                  <div className="chart-placeholder">[Analytics Chart]</div>
-                </div>
-                <div className="traffic-by-source card">
-                  <h3>Traffic by Source</h3>
-                  <div className="chart-placeholder">[Traffic by Source Chart]</div>
-                </div>
-              </div>
-              <div className="charts-row">
-                <div className="traffic-by-device card">
-                  <h3>Traffic by Device</h3>
-                  <div className="chart-placeholder">[Traffic by Device Chart]</div>
-                </div>
-                <div className="traffic-by-location card">
-                  <h3>Traffic by Location</h3>
-                  <div className="chart-placeholder">[Traffic by Location Chart]</div>
-                </div>
-              </div>
-            </div>
-          )}
+          
 
           {activeTab === "products" && (
             <div className="product-card">

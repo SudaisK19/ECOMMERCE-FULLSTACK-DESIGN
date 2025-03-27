@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connect } from "@/dbConfig/dbConfig";
 import Category from "@/models/categoryModel";
 
 // Connect to the database immediately
 connect();
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Fetch all categories
     const categories = await Category.find({});

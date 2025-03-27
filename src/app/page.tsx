@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -77,7 +78,7 @@ export default function Home() {
                 {/* User Text */}
                 <div className="flex flex-col text-left">
                   <p className="text-sm font-regular">Hi, user</p>
-                  <p className="text-xs text-gray-500">Let's get started</p>
+                  <p className="text-xs text-gray-500">Let&apos;s get started</p>
                 </div>
               </div>
 

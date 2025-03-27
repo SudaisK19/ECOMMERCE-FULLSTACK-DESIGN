@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connect } from "@/dbConfig/dbConfig";
-import Product from "@/models/productModel";
-import Category from "@/models/categoryModel";
+import Product from "@/models/Products";
+import Category from "@/models/Categories";
 
 // Connect to the database immediately
 connect();
@@ -22,7 +22,7 @@ async function resolveCategory(categoryValue: string) {
   return categoryDoc ? categoryDoc._id : null;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Populate the "category" field with only the "name" property
     const products = await Product.find({}).populate("category", "name");

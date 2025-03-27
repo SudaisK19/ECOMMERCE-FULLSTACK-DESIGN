@@ -2,25 +2,36 @@ import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConfig/dbConfig";
 import Product from "@/models/productModel";
 
-// Connect to the database immediately
+// Ensure database connection
 connect();
-export async function GET(
-    request: NextRequest,
-    { params }: { params: { catID: string } }
-  ) {
-    try {
-      // Destructure the catID directly without await
-      const { catID } = params;
-      const products = await Product.find({ category: catID }).select(
-        "name price description"
-      );
-      return NextResponse.json({ products });
-    } catch (error) {
-      console.error("Error fetching products:", error);
+
+// Define the type for the context parameter
+interface Context {
+  params: { catID: string };
+}
+
+export async function GET(request: NextRequest, context: Context) {
+  try {
+    const { catID } = context.params;
+
+    if (!catID) {
       return NextResponse.json(
-        { error: "Failed to fetch products" },
-        { status: 500 }
+        { error: "Category ID is required" },
+        { status: 400 }
       );
     }
+
+    // Fetch products based on category
+    const products = await Product.find({ category: catID }).select(
+      "name price description images"
+    );
+
+    return NextResponse.json({ products }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch products" },
+      { status: 500 }
+    );
   }
-  
+}

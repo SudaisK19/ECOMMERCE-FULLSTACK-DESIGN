@@ -1,15 +1,13 @@
-// app/api/admin/info/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server"; // Removed `NextRequest` since it's unused
 import { connect } from "@/dbConfig/dbConfig";
 import User from "@/models/userModel";
 
 // Connect to the database
 connect();
 
-export async function GET(request: NextRequest) {
+export async function GET() { // Removed `request` since it's unused
   try {
-    // For demonstration, we fetch the first user with role "admin".
-    // In a real app, you might extract the admin's id from the session.
+    // Fetch the first user with role "admin".
     const adminUser = await User.findOne({ role: "admin" }).select("name email _id");
     if (!adminUser) {
       return NextResponse.json({ error: "Admin not found" }, { status: 404 });

@@ -3,20 +3,28 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+// Update the interface so that category can be either a string or an object
 interface Product {
   _id?: string;
   name: string;
   description: string;
   price: number;
   stock: number;
-  category?: string;
+  category?: string | { _id: string; name: string };
+}
+
+// Define an interface for admin info
+interface AdminInfo {
+  _id: string;
+  name: string;
+  email: string;
 }
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"dashboard" | "products">("dashboard");
-  const [user, setUser] = useState({ name: "John Doe", role: "Administrator" });
+  const [user, setUser] = useState<AdminInfo | null>(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -24,6 +32,22 @@ export default function AdminDashboard() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const router = useRouter();
 
+  // Fetch admin info
+  const fetchAdminInfo = async () => {
+    try {
+      const res = await fetch("/api/admin/info");
+      const data = await res.json();
+      if (data.admin) {
+        setUser(data.admin);
+      } else {
+        setError("Admin info not found.");
+      }
+    } catch (err) {
+      setError("Failed to fetch admin info.");
+    }
+  };
+
+  // Fetch products for product management tab
   const fetchProducts = async () => {
     try {
       const res = await fetch("/api/admin/product-management");
@@ -39,6 +63,12 @@ export default function AdminDashboard() {
     }
   };
 
+  // Fetch admin info on component mount
+  useEffect(() => {
+    fetchAdminInfo();
+  }, []);
+
+  // Fetch products when the products tab is active
   useEffect(() => {
     if (activeTab === "products") {
       fetchProducts();
@@ -46,7 +76,7 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   const handleLogout = async () => {
-    const res = await fetch("/api/logout", { method: "POST" });
+    const res = await fetch("/api/auth/logout", { method: "POST" });
     if (res.ok) {
       router.push("/auth?mode=login");
     }
@@ -142,6 +172,13 @@ export default function AdminDashboard() {
     }
   };
 
+  // Helper to convert category to a string for inputs
+  const getCategoryString = (cat: Product["category"]): string => {
+    if (!cat) return "";
+    if (typeof cat === "object") return cat.name || "";
+    return cat;
+  };
+
   return (
     <div className="admin-layout">
       {/* Top Bar */}
@@ -174,15 +211,18 @@ export default function AdminDashboard() {
             </button>
           </nav>
 
-          {/* User Info */}
+          {/* User Info - Dynamic Admin Info */}
           <div className="user-info">
-            <img
-              src="/images/avatar.png"
-              alt="User Avatar"
-              className="user-avatar"
-            />
-            <div className="user-name">{user.name}</div>
-            <div className="user-role">{user.role}</div>
+            {user ? (
+              <>
+                <img src="/images/avatar.png" alt="User Avatar" className="user-avatar" />
+                <div className="user-name">{user.name}</div>
+                <div className="user-email">{user.email}</div>  {/* Display email here */}
+                <div className="user-role">Admin</div>
+              </>
+            ) : (
+              <p>Loading admin info...</p>
+            )}
             <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>
@@ -235,6 +275,7 @@ export default function AdminDashboard() {
                     <tr>
                       <th>ID</th>
                       <th>Product Name</th>
+                      <th>Category</th>
                       <th>Price</th>
                       <th>Stock</th>
                       <th>Actions</th>
@@ -246,19 +287,18 @@ export default function AdminDashboard() {
                         <tr key={product._id}>
                           <td>{product._id}</td>
                           <td>{product.name}</td>
+                          <td>
+                            {typeof product.category === "object"
+                              ? product.category.name
+                              : product.category}
+                          </td>
                           <td>${product.price}</td>
                           <td>{product.stock}</td>
                           <td>
-                            <button
-                              onClick={() => handleEditClick(product)}
-                              className="edit-link"
-                            >
+                            <button onClick={() => handleEditClick(product)} className="edit-link">
                               Edit
                             </button>
-                            <button
-                              onClick={() => handleDeleteClick(product)}
-                              className="delete-btn"
-                            >
+                            <button onClick={() => handleDeleteClick(product)} className="delete-btn">
                               Delete
                             </button>
                           </td>
@@ -266,7 +306,7 @@ export default function AdminDashboard() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={6} style={{ textAlign: "center" }}>
                           No products found.
                         </td>
                       </tr>
@@ -295,36 +335,28 @@ export default function AdminDashboard() {
               <label>Description</label>
               <textarea
                 value={newProduct.description}
-                onChange={(e) =>
-                  setNewProduct({ ...newProduct, description: e.target.value })
-                }
+                onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                 required
               />
               <label>Price</label>
               <input
                 type="number"
                 value={newProduct.price}
-                onChange={(e) =>
-                  setNewProduct({ ...newProduct, price: Number(e.target.value) })
-                }
+                onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
                 required
               />
               <label>Stock</label>
               <input
                 type="number"
                 value={newProduct.stock}
-                onChange={(e) =>
-                  setNewProduct({ ...newProduct, stock: Number(e.target.value) })
-                }
+                onChange={(e) => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
                 required
               />
               <label>Category</label>
               <input
                 type="text"
-                value={newProduct.category}
-                onChange={(e) =>
-                  setNewProduct({ ...newProduct, category: e.target.value })
-                }
+                value={getCategoryString(newProduct.category)}
+                onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
                 required
               />
 
@@ -332,11 +364,7 @@ export default function AdminDashboard() {
                 <button type="submit" className="save-btn">
                   Save
                 </button>
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => setShowAddModal(false)}
-                >
+                <button type="button" className="cancel-btn" onClick={() => setShowAddModal(false)}>
                   Cancel
                 </button>
               </div>
@@ -355,9 +383,7 @@ export default function AdminDashboard() {
               <input
                 type="text"
                 value={selectedProduct.name}
-                onChange={(e) =>
-                  setSelectedProduct({ ...selectedProduct, name: e.target.value })
-                }
+                onChange={(e) => setSelectedProduct({ ...selectedProduct, name: e.target.value })}
                 required
               />
               <label>Description</label>
@@ -373,10 +399,7 @@ export default function AdminDashboard() {
                 type="number"
                 value={selectedProduct.price}
                 onChange={(e) =>
-                  setSelectedProduct({
-                    ...selectedProduct,
-                    price: Number(e.target.value),
-                  })
+                  setSelectedProduct({ ...selectedProduct, price: Number(e.target.value) })
                 }
                 required
               />
@@ -385,17 +408,14 @@ export default function AdminDashboard() {
                 type="number"
                 value={selectedProduct.stock}
                 onChange={(e) =>
-                  setSelectedProduct({
-                    ...selectedProduct,
-                    stock: Number(e.target.value),
-                  })
+                  setSelectedProduct({ ...selectedProduct, stock: Number(e.target.value) })
                 }
                 required
               />
               <label>Category</label>
               <input
                 type="text"
-                value={selectedProduct.category}
+                value={getCategoryString(selectedProduct.category)}
                 onChange={(e) =>
                   setSelectedProduct({ ...selectedProduct, category: e.target.value })
                 }
@@ -406,11 +426,7 @@ export default function AdminDashboard() {
                 <button type="submit" className="save-btn">
                   Update
                 </button>
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => setShowEditModal(false)}
-                >
+                <button type="button" className="cancel-btn" onClick={() => setShowEditModal(false)}>
                   Cancel
                 </button>
               </div>
@@ -431,10 +447,7 @@ export default function AdminDashboard() {
               <button onClick={confirmDelete} className="delete-confirm-btn">
                 Delete
               </button>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="cancel-btn"
-              >
+              <button onClick={() => setShowDeleteModal(false)} className="cancel-btn">
                 Cancel
               </button>
             </div>
@@ -442,359 +455,358 @@ export default function AdminDashboard() {
         </div>
       )}
 
-<style jsx>{`
-  html,
-  body,
-  #__next {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    width: 100%;
-    max-width: 100vw;
-    overflow-x: hidden;
-    font-family: sans-serif;
-    box-sizing: border-box;
-  }
+      <style jsx>{`
+        html,
+        body,
+        #__next {
+          margin: 0;
+          padding: 0;
+          height: 100%;
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: hidden;
+          font-family: sans-serif;
+          box-sizing: border-box;
+        }
 
-  *,
-  *::before,
-  *::after {
-    box-sizing: inherit;
-  }
+        *,
+        *::before,
+        *::after {
+          box-sizing: inherit;
+        }
 
-  .admin-layout {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    width: 100%;
-    max-width: 100vw;
-    background: #f8f9fa;
-    overflow-x: hidden;
-  }
+        .admin-layout {
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+          width: 100%;
+          max-width: 100vw;
+          background: #f8f9fa;
+          overflow-x: hidden;
+        }
 
-  .top-bar {
-    background: #fff;
-    padding: 10px 20px;
-    border-bottom: 1px solid #dee2e7;
-    display: flex;
-    align-items: center;
-    width: 100%;
-  }
+        .top-bar {
+          background: #fff;
+          padding: 10px 20px;
+          border-bottom: 1px solid #dee2e7;
+          display: flex;
+          align-items: center;
+          width: 100%;
+        }
 
-  .top-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+        .top-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
 
-  .logo-icon {
-    background: #8cb7f5;
-    padding: 8px;
-    border-radius: 8px;
-  }
+        .logo-icon {
+          background: #8cb7f5;
+          padding: 8px;
+          border-radius: 8px;
+        }
 
-  .logo-icon img {
-    width: 24px;
-    height: 24px;
-  }
+        .logo-icon img {
+          width: 24px;
+          height: 24px;
+        }
 
-  .logo-text {
-    font-size: 20px;
-    font-weight: 700;
-    color: #0d6efd;
-  }
+        .logo-text {
+          font-size: 20px;
+          font-weight: 700;
+          color: #0d6efd;
+        }
 
-  .admin-panel-text {
-    font-size: 1.2rem;
-    color: #0d6efd;
-    font-weight: 600;
-  }
+        .admin-panel-text {
+          font-size: 1.2rem;
+          color: #0d6efd;
+          font-weight: 600;
+        }
 
-  .content-wrapper {
-    display: flex;
-    flex: 1;
-    width: 100%;
-    max-width: 100vw;
-    overflow: hidden;
-  }
+        .content-wrapper {
+          display: flex;
+          flex: 1;
+          width: 100%;
+          max-width: 100vw;
+          overflow: hidden;
+        }
 
-  .sidebar {
-    width: clamp(180px, 20%, 240px);
-    background: #fff;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    border-right: 1px solid #e0e0e0;
-  }
+        .sidebar {
+          width: clamp(180px, 20%, 240px);
+          background: #fff;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          border-right: 1px solid #e0e0e0;
+        }
 
-  .nav-links {
-    display: flex;
-    flex-direction: column;
-  }
+        .nav-links {
+          display: flex;
+          flex-direction: column;
+        }
 
-  .nav-item {
-    background: none;
-    border: none;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.95rem;
-    color: #333;
-    padding: 10px;
-    margin-bottom: 5px;
-    text-align: left;
-    border-radius: 6px;
-    cursor: pointer;
-    width: 100%;
-  }
+        .nav-item {
+          background: none;
+          border: none;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.95rem;
+          color: #333;
+          padding: 10px;
+          margin-bottom: 5px;
+          text-align: left;
+          border-radius: 6px;
+          cursor: pointer;
+          width: 100%;
+        }
 
-  .nav-item.active,
-  .nav-item:hover {
-    background: #e9ecef;
-    font-weight: 600;
-  }
+        .nav-item.active,
+        .nav-item:hover {
+          background: #e9ecef;
+          font-weight: 600;
+        }
 
-  .user-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    margin-top: 1rem;
-  }
+        .user-info {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          margin-top: 1rem;
+        }
 
-  .user-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-  }
+        .user-avatar {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+        }
 
-  .user-name {
-    font-weight: bold;
-    color: #333;
-  }
+        .user-name {
+          font-weight: bold;
+          color: #333;
+        }
 
-  .user-role {
-    font-size: 0.85rem;
-    color: #888;
-  }
+        .user-role {
+          font-size: 0.85rem;
+          color: #888;
+        }
 
-  .logout-btn {
-    margin-top: 8px;
-    background: #f44336;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    cursor: pointer;
-  }
+        .logout-btn {
+          margin-top: 8px;
+          background: #f44336;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          cursor: pointer;
+        }
 
-  .main-content {
-    flex: 1;
-    padding: 20px;
-    width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
+        .main-content {
+          flex: 1;
+          padding: 20px;
+          width: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
 
-  .product-card {
-    background: white;
-    padding: 20px;
-    border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  }
+        .product-card {
+          background: white;
+          padding: 20px;
+          border-radius: 6px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
 
-  .product-title {
-    color: #0d6efd;
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-  }
+        .product-title {
+          color: #0d6efd;
+          font-size: 1.2rem;
+          margin-bottom: 1rem;
+        }
 
-  .top-actions {
-    margin-bottom: 1rem;
-  }
+        .top-actions {
+          margin-bottom: 1rem;
+        }
 
-  .add-product-btn {
-    background: #0d6efd;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-  }
+        .add-product-btn {
+          background: #0d6efd;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 4px;
+          text-decoration: none;
+          font-weight: 500;
+          border: none;
+          cursor: pointer;
+        }
 
-  .error-message {
-    background: #ffe9e0;
-    border: 1px solid #ffa07a;
-    padding: 10px;
-    margin-bottom: 1rem;
-    color: #a94442;
-    border-radius: 4px;
-  }
+        .error-message {
+          background: #ffe9e0;
+          border: 1px solid #ffa07a;
+          padding: 10px;
+          margin-bottom: 1rem;
+          color: #a94442;
+          border-radius: 4px;
+        }
 
-  .table-wrapper {
-    overflow-x: auto;
-  }
+        .table-wrapper {
+          overflow-x: auto;
+        }
 
-  .product-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
+        .product-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
 
-  .product-table th,
-  .product-table td {
-    padding: 10px;
-    border-bottom: 1px solid #e0e0e0;
-    text-align: left;
-  }
+        .product-table th,
+        .product-table td {
+          padding: 10px;
+          border-bottom: 1px solid #e0e0e0;
+          text-align: left;
+        }
 
-  .edit-link {
-    color: #0d6efd;
-    margin-right: 10px;
-    border: none;
-    background: none;
-    cursor: pointer;
-  }
+        .edit-link {
+          color: #0d6efd;
+          margin-right: 10px;
+          border: none;
+          background: none;
+          cursor: pointer;
+        }
 
-  .delete-btn {
-    border: none;
-    background: none;
-    color: #e53935;
-    cursor: pointer;
-  }
+        .delete-btn {
+          border: none;
+          background: none;
+          color: #e53935;
+          cursor: pointer;
+        }
 
-  .dashboard-charts {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
+        .dashboard-charts {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
 
-  .charts-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-  }
+        .charts-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 24px;
+        }
 
-  .card {
-    background: #fff;
-    border: 1px solid rgba(28, 28, 28, 0.1);
-    box-shadow: 6px 6px 50px rgba(0, 0, 0, 0.05);
-    border-radius: 16px;
-    padding: 24px;
-    flex: 1 1 300px;
-    min-width: 0;
-  }
+        .card {
+          background: #fff;
+          border: 1px solid rgba(28, 28, 28, 0.1);
+          box-shadow: 6px 6px 50px rgba(0, 0, 0, 0.05);
+          border-radius: 16px;
+          padding: 24px;
+          flex: 1 1 300px;
+          min-width: 0;
+        }
 
-  .chart-placeholder {
-    height: 200px;
-    background: #f1f2f7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #888;
-    font-size: 1rem;
-    border-radius: 8px;
-  }
+        .chart-placeholder {
+          height: 200px;
+          background: #f1f2f7;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #888;
+          font-size: 1rem;
+          border-radius: 8px;
+        }
 
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 999;
-  }
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.4);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 999;
+        }
 
-  .modal {
-    background: #fff;
-    padding: 20px;
-    border-radius: 6px;
-    width: 400px;
-    max-width: 90%;
-  }
+        .modal {
+          background: #fff;
+          padding: 20px;
+          border-radius: 6px;
+          width: 400px;
+          max-width: 90%;
+        }
 
-  .modal h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #0d6efd;
-  }
+        .modal h3 {
+          margin-top: 0;
+          margin-bottom: 1rem;
+          color: #0d6efd;
+        }
 
-  .modal-form {
-    display: flex;
-    flex-direction: column;
-  }
+        .modal-form {
+          display: flex;
+          flex-direction: column;
+        }
 
-  .modal-form label {
-    margin-top: 0.5rem;
-    margin-bottom: 0.2rem;
-    font-weight: 500;
-  }
+        .modal-form label {
+          margin-top: 0.5rem;
+          margin-bottom: 0.2rem;
+          font-weight: 500;
+        }
 
-  .modal-form input,
-  .modal-form textarea {
-    padding: 8px;
-    margin-bottom: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
+        .modal-form input,
+        .modal-form textarea {
+          padding: 8px;
+          margin-bottom: 0.5rem;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+        }
 
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 1rem;
-  }
+        .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 1rem;
+          margin-top: 1rem;
+        }
 
-  .save-btn,
-  .delete-confirm-btn {
-    background: #0d6efd;
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-  }
+        .save-btn,
+        .delete-confirm-btn {
+          background: #0d6efd;
+          color: #fff;
+          padding: 8px 16px;
+          border-radius: 4px;
+          border: none;
+          cursor: pointer;
+        }
 
-  .delete-confirm-btn {
-    background: #d9534f;
-  }
+        .delete-confirm-btn {
+          background: #d9534f;
+        }
 
-  .cancel-btn {
-    background: #6c757d;
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-  }
+        .cancel-btn {
+          background: #6c757d;
+          color: #fff;
+          padding: 8px 16px;
+          border-radius: 4px;
+          border: none;
+          cursor: pointer;
+        }
 
-  @media (max-width: 768px) {
-    .content-wrapper {
-      flex-direction: column;
-    }
-    .sidebar {
-      width: 100%;
-      max-width: 100%;
-      flex-direction: row;
-      align-items: flex-start;
-      justify-content: space-around;
-    }
-    .main-content {
-      padding: 12px;
-    }
-    .modal {
-      width: 95%;
-    }
-  }
-`}</style>
-
+        @media (max-width: 768px) {
+          .content-wrapper {
+            flex-direction: column;
+          }
+          .sidebar {
+            width: 100%;
+            max-width: 100%;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-around;
+          }
+          .main-content {
+            padding: 12px;
+          }
+          .modal {
+            width: 95%;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -9,10 +9,16 @@ interface Product {
   id: string;
   name: string;
   image: string;
+  images: string[]; // ✅ Ensure images is an array
   price: number;
   description: string;
-  [key: string]: any; // (Optional) Allows dynamic fields
+  inStock: boolean; // ✅ Add inStock to indicate availability
+  rating: number; // ✅ Add rating for product rating
+  reviews: number; // ✅ Add reviews count
+  sold: number; // ✅ Add sold count
 }
+
+
 
 // Static supplier details (Remains the Same)
 const supplier = {
@@ -195,7 +201,7 @@ export default function ProductDetail() {
                 Send Inquiry
                 </button>
                 <button className="w-full mt-2 text-blue-600 border border-blue-600 py-2 rounded-md hover:bg-blue-100 transition">
-                Seller's Profile
+                Seller&apos;s Profile
                 </button>
             </div>
 

@@ -36,17 +36,22 @@ export default function Signup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
+    
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Signup failed");
-
+    
       setSuccess("Signup successful!");
       setTimeout(() => {
         router.push("/"); // Redirect to home page after signup
       }, 1500);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // Use unknown instead of any
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred");
+      }
     }
+    
   };
 
   return (

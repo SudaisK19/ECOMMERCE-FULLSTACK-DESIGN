@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+import Image from "next/image";
+
 
 // Category Interface
 interface Category {
@@ -214,7 +216,14 @@ const RatingItem = ({ stars }: { stars: number }) => {
       <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300" />
       <div className="flex">
         {[...filledStars, ...emptyStars].map((imgSrc, index) => (
-          <img key={index} src={`/${imgSrc}`} alt="star" className="h-4" />
+          <Image 
+            key={index} 
+            src={`/${imgSrc}`} 
+            alt="star" 
+            width={16} 
+            height={16} 
+            className="h-4 w-4"
+          />
         ))}
       </div>
     </div>

@@ -1,4 +1,4 @@
-
+import Image from "next/image";
 export default function DealsSection() {
   return (
     <div className="bg-white w-full max-w-7xl mt-10 p-4 rounded-md">
@@ -42,7 +42,16 @@ export default function DealsSection() {
               <div key={index} className="flex flex-col items-center min-w-[120px] md:w-1/5 relative">
                 
                 {/* Product Image */}
-                <img src={item.image} alt={item.name} className="w-20 h-20 object-contain" />
+                
+
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  className="w-20 h-20 object-contain"
+                  width={80}
+                  height={80}
+                />
+
 
                 {/* Product Name */}
                 <p className="text-xs mt-1 text-center">{item.name}</p>

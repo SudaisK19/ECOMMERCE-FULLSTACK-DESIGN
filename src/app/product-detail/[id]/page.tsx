@@ -5,6 +5,15 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Description from "@/components/Description";
 
+interface Product {
+  id: string;
+  name: string;
+  image: string;
+  price: number;
+  description: string;
+  [key: string]: any; // (Optional) Allows dynamic fields
+}
+
 // Static supplier details (Remains the Same)
 const supplier = {
   name: "Guanji Trading LLC",
@@ -20,9 +29,10 @@ const staticPrices = [
   { price: 78, range: "700+ pcs" },
 ];
 
+
 export default function ProductDetail() {
   const { id } = useParams(); // Get product ID from URL
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null); // ✅ Now using Product interface
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 

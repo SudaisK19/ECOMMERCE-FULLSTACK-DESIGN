@@ -5,7 +5,7 @@ import Category from "@/models/Categories";
 // Connect to the database immediately
 connect();
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // Fetch all categories
     const categories = await Category.find({});

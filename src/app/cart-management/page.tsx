@@ -1,5 +1,7 @@
 "use client";
 import React from "react";
+import Image from "next/image";
+
 
 export default function CartPage() {
   return (
@@ -14,7 +16,8 @@ export default function CartPage() {
           {/* Single Cart Item #1 */}
           <div className="cart-item">
             <div className="cart-item-img">
-              <img src="/images/sample-shirt.png" alt="Sample Shirt" />
+              <Image src="/images/sample-shirt.png" alt="Sample Shirt" width={500} height={500} />
+
             </div>
             <div className="cart-item-content">
               <div className="cart-item-top">
@@ -49,10 +52,12 @@ export default function CartPage() {
           {/* Single Cart Item #2 */}
           <div className="cart-item">
             <div className="cart-item-img">
-              <img
-                src="https://via.placeholder.com/100x100/eeeeee?text=Product+2"
-                alt="Product 2"
-              />
+            <Image
+              src="https://via.placeholder.com/100x100/eeeeee?text=Product+2"
+              alt="Product 2"
+              width={100}
+              height={100}
+            />
             </div>
             <div className="cart-item-content">
               <div className="cart-item-top">
@@ -86,10 +91,12 @@ export default function CartPage() {
           {/* Single Cart Item #3 */}
           <div className="cart-item">
             <div className="cart-item-img">
-              <img
-                src="https://via.placeholder.com/100x100/eeeeee?text=Product+3"
-                alt="Product 3"
-              />
+            <Image
+              src="https://via.placeholder.com/100x100/eeeeee?text=Product+3"
+              alt="Product 3"
+              width={100}
+              height={100}
+            />
             </div>
             <div className="cart-item-content">
               <div className="cart-item-top">
@@ -166,21 +173,21 @@ export default function CartPage() {
       {/* Info blocks (below the cart) */}
       <div className="cart-info">
         <div className="info-item">
-          <img src="/images/icons/lock.png" alt="Secure payment" />
+          <Image src="/images/icons/lock.png" alt="Secure payment" width={50} height={50} />
           <div className="info-text">
             <h4>Secure payment</h4>
             <p>Have you ever finally just</p>
           </div>
         </div>
         <div className="info-item">
-          <img src="/images/icons/message.png" alt="Customer support" />
+          <Image src="/images/icons/message.png" alt="Customer support" width={50} height={50} />
           <div className="info-text">
             <h4>Customer support</h4>
             <p>Have you ever finally just</p>
           </div>
         </div>
         <div className="info-item">
-          <img src="/images/icons/truck.png" alt="Free delivery" />
+          <Image src="/images/icons/truck.png" alt="Free delivery" width={50} height={50} />
           <div className="info-text">
             <h4>Free delivery</h4>
             <p>Have you ever finally just</p>
@@ -194,11 +201,13 @@ export default function CartPage() {
         <div className="saved-grid">
           {/* Sample item #1 */}
           <div className="saved-card">
-            <img
-              src="/images/products/tablet.png"
-              alt="Tablet"
-              className="saved-img"
-            />
+          <Image
+            src="/images/products/tablet.png"
+            alt="Tablet"
+            className="saved-img"
+            width={200}
+            height={200}
+          />
             <p className="saved-price">$99.50</p>
             <p className="saved-name">GoPro HERO6 4K Action Camera – Black</p>
             <button className="saved-move-btn">Move to cart</button>
@@ -206,11 +215,13 @@ export default function CartPage() {
 
           {/* Sample item #2 */}
           <div className="saved-card">
-            <img
-              src="/images/products/phone.png"
-              alt="Phone"
-              className="saved-img"
-            />
+          <Image
+            src="/images/products/phone.png"
+            alt="Phone"
+            className="saved-img"
+            width={200}
+            height={200}
+          />
             <p className="saved-price">$99.50</p>
             <p className="saved-name">GoPro HERO6 4K Action Camera – Black</p>
             <button className="saved-move-btn">Move to cart</button>
@@ -218,11 +229,13 @@ export default function CartPage() {
 
           {/* Sample item #3 */}
           <div className="saved-card">
-            <img
-              src="/images/products/watch.png"
-              alt="Watch"
-              className="saved-img"
-            />
+          <Image
+            src="/images/products/watch.png"
+            alt="Watch"
+            className="saved-img"
+            width={200}
+            height={200}
+          />
             <p className="saved-price">$99.50</p>
             <p className="saved-name">GoPro HERO6 4K Action Camera – Black</p>
             <button className="saved-move-btn">Move to cart</button>
@@ -230,10 +243,12 @@ export default function CartPage() {
 
           {/* Sample item #4 */}
           <div className="saved-card">
-            <img
+            <Image
               src="/images/products/laptop.png"
               alt="Laptop"
               className="saved-img"
+              width={200}
+              height={200}
             />
             <p className="saved-price">$99.50</p>
             <p className="saved-name">GoPro HERO6 4K Action Camera – Black</p>
@@ -249,7 +264,7 @@ export default function CartPage() {
           <p>Have you ever finally just write dummy info</p>
         </div>
         <button className="banner-yellow-btn">
-          <img src="/images/yellow-button.png" alt="Shop now" />
+          <Image src="/images/yellow-button.png" alt="Shop now" width={150} height={50} />
         </button>
       </div>
 

@@ -26,6 +26,7 @@ export default function ProductDetailsStatic() {
           setError("Product not found");
         }
       } catch (err) {
+        console.error("Error fetching product:", err);
         setError("Failed to fetch product details");
       } finally {
         setLoading(false);

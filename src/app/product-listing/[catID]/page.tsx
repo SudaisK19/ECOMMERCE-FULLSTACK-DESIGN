@@ -73,11 +73,14 @@ export default function ProductListingPage() {
               <div className="selectbox-done">
                 <span className="selectbox-text">Featured</span>
                 <span className="selectbox-icon">
-                  <img
-                    src="/images/arrow-d.png"
-                    alt="Arrow down"
-                    className="arrow-down"
-                  />
+                <Image
+                  src="/images/arrow-d.png"
+                  alt="Arrow down"
+                  className="arrow-down"
+                  width={24}
+                  height={24}
+                />
+
                 </span>
               </div>
               <div className="btn-group">
@@ -86,21 +89,26 @@ export default function ProductListingPage() {
                   onClick={handleGridClick}
                   aria-label="Grid view"
                 >
-                  <img
+                  <Image
                     src="/images/grid-button.png"
                     alt="Grid view"
                     className="toggle-icon"
+                    width={32}
+                    height={32}
                   />
+
                 </button>
                 <button
                   className={`btn-list ${viewMode === "list" ? "active" : ""}`}
                   onClick={handleListClick}
                   aria-label="List view"
                 >
-                  <img
+                  <Image
                     src="/images/list-button.png"
                     alt="List view"
                     className="toggle-icon"
+                    width={32}
+                    height={32}
                   />
                 </button>
               </div>

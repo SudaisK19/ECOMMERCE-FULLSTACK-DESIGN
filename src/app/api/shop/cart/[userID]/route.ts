@@ -14,9 +14,9 @@ interface CartItem {
 }
 
 // GET /api/shop/cart/[userID]
-export async function GET(request: NextRequest, context: { params: { userID: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { userID: string } }) {
   try {
-    const { userID } = context.params;
+    const { userID } = params;
 
     // Fetch the cart by userId and populate the product data
     const cart = await Cart.findOne({ userId: userID }).populate({
@@ -36,9 +36,9 @@ export async function GET(request: NextRequest, context: { params: { userID: str
 }
 
 // PUT /api/shop/cart/[userID]
-export async function PUT(request: NextRequest, context: { params: { userID: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: { userID: string } }) {
   try {
-    const { userID } = context.params;
+    const { userID } = params;
     
     const body = await request.json();
     const { items } = body;
@@ -69,9 +69,9 @@ export async function PUT(request: NextRequest, context: { params: { userID: str
 }
 
 // DELETE /api/shop/cart/[userID]?itemId=xxx
-export async function DELETE(request: NextRequest, context: { params: { userID: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { userID: string } }) {
   try {
-    const { userID } = context.params;
+    const { userID } = params;
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get("itemId");
     

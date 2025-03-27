@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";  // Importing the Image component from next/image
 
 export default function AuthPage() {
   const router = useRouter();
@@ -79,7 +80,14 @@ export default function AuthPage() {
       <div className={`message ${mode}`}>
         {/* Brand logo and text side by side */}
         <div className="brand">
-          <img src="/images/brand-icon.png" alt="Brand Icon" className="brand-icon" />
+          {/* Using Image component instead of img */}
+          <Image 
+            src="/images/brand-icon.png" 
+            alt="Brand Icon" 
+            className="brand-icon" 
+            width={40}  // Specify width and height for optimization
+            height={40}
+          />
           <span className="brand-text">Brand</span>
         </div>
 

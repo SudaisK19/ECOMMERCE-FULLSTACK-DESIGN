@@ -14,10 +14,7 @@ interface CartItem {
 }
 
 // GET /api/shop/cart/[userID]
-export async function GET(
-  request: NextRequest,
-  context: { params: { userID: string } }
-) {
+export async function GET(request: NextRequest, context: { params: { userID: string } }) {
   try {
     const { userID } = context.params;
 
@@ -39,12 +36,9 @@ export async function GET(
 }
 
 // PUT /api/shop/cart/[userID]
-export async function PUT(
-  request: NextRequest,
-  context: { params: { userID: string } }
-) {
+export async function PUT(request: NextRequest, context: { params: { userID: string } }) {
   try {
-    const { userID } = context.params; // ✅ Fix: Directly use context.params
+    const { userID } = context.params;
     
     const body = await request.json();
     const { items } = body;
@@ -75,12 +69,9 @@ export async function PUT(
 }
 
 // DELETE /api/shop/cart/[userID]?itemId=xxx
-export async function DELETE(
-  request: NextRequest,
-  context: { params: { userID: string } }
-) {
+export async function DELETE(request: NextRequest, context: { params: { userID: string } }) {
   try {
-    const { userID } = context.params; // ✅ Fix: Directly use context.params
+    const { userID } = context.params;
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get("itemId");
     
@@ -90,7 +81,6 @@ export async function DELETE(
     }
 
     if (itemId) {
-      // Use the CartItem type instead of any
       cart.items = cart.items.filter(
         (item: CartItem) => item._id.toString() !== itemId
       );

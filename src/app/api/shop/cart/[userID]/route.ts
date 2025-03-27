@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
+
 import { connect } from "@/dbConfig/dbConfig";
 import Cart from "@/models/cartModel";
-import Product from "@/models/productModel"; // Ensure Product model is imported
+
 import { NextRequest, NextResponse } from "next/server"; // Ensure NextResponse is imported
 
 connect();

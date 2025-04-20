@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function Login() {
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,15 +24,19 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
+        credentials: "include", // Important to include cookies in request/response
       });
 
       const data = await res.json();
+      console.log("Login response:", data);
+
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      // Store token in localStorage
-      localStorage.setItem("token", data.token);
+      // ✅ If needed, you can read the token from cookie (only if it's not httpOnly)
+      // const token = Cookies.get("authToken");
+      // if (token) console.log("Token from cookie:", token);
 
-      // Redirect to home/dashboard
+      // ✅ Redirect to home/dashboard
       router.push("/");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -50,7 +54,7 @@ export default function Login() {
       <div className="bg-white shadow-md rounded-lg p-8 w-96">
         <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"

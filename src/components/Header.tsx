@@ -4,86 +4,80 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-// 1. Define a Category interface
 interface Category {
   _id: string;
   name: string;
-  // Add any other fields your API returns
 }
 
+
+
 const Header = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Fetch categories once on component mount
+  // Get user profile from API
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/profile");
+        if (!res.ok) throw new Error("Failed to fetch user profile");
+        const data = await res.json();
+        setUserId(data.user._id);
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // Fetch categories
   useEffect(() => {
     fetch("/api/shop/categories")
       .then((res) => {
-        if (!res.ok) {
-          throw new Error("Network response was not ok");
-        }
+        if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
       })
       .then((data) => setCategories(data.categories))
-      .catch((error) => {
-        console.error("Error fetching categories:", error);
+      .catch((err) => {
+        console.error("Error fetching categories:", err);
         setError("Failed to fetch categories");
       });
   }, []);
 
-  // Define action icons with optional link paths
   const actionIcons = [
     { icon: "profile.png", label: "Profile", link: "/profile" },
     { icon: "message.png", label: "Message" },
     { icon: "orders.png", label: "Orders" },
-    { icon: "cart.png", label: "My cart", link: "/cart-management" },
+    { icon: "cart.png", label: "My cart", link: userId ? `/cart-managment/${userId}` : "#" },
   ];
 
   return (
     <header className="w-full bg-white font-sans shadow-sm relative">
       {/* Desktop Header */}
       <div className="hidden md:flex justify-between items-center border-b border-gray-200 py-3 max-w-7xl mx-auto px-4">
-        {/* Logo (wrap with Link to home) */}
         <Link href="/">
           <div className="flex items-center space-x-2 cursor-pointer">
-            <Image
-              src="/images/brand-icon.png"
-              alt="Brand Icon"
-              width={30}
-              height={30}
-            />
+            <Image src="/images/brand-icon.png" alt="Brand Icon" width={30} height={30} />
             <span className="text-xl font-bold text-[#8CB7F5]">Brand</span>
           </div>
         </Link>
 
-        {/* Search Bar */}
         <div className="flex items-center border border-blue-500 rounded-md overflow-hidden w-full max-w-lg mx-10">
-          <input
-            type="text"
-            placeholder="Search"
-            className="flex-1 p-2 outline-none text-sm"
-          />
+          <input type="text" placeholder="Search" className="flex-1 p-2 outline-none text-sm" />
           <select className="border-l border-blue-500 px-4 text-sm outline-none">
             <option>All category</option>
           </select>
-          <button className="bg-blue-600 text-white px-6 py-2 font-medium">
-            Search
-          </button>
+          <button className="bg-blue-600 text-white px-6 py-2 font-medium">Search</button>
         </div>
 
-        {/* Action Icons */}
         <div className="flex items-center space-x-6 text-gray-500">
           {actionIcons.map((item) => {
             const content = (
               <div className="flex flex-col items-center text-xs cursor-pointer">
-                <Image
-                  src={`/images/icons/${item.icon}`}
-                  alt={item.label}
-                  width={20}
-                  height={20}
-                />
+                <Image src={`/images/icons/${item.icon}`} alt={item.label} width={20} height={20} />
                 <span>{item.label}</span>
               </div>
             );
@@ -100,58 +94,29 @@ const Header = () => {
 
       {/* Mobile Header */}
       <div className="md:hidden flex justify-between items-center border-b border-gray-300 bg-white py-3 px-4">
-        {/* Menu Icon */}
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-          <Image
-            src="/images/icons/menu.png"
-            alt="Menu"
-            width={24}
-            height={24}
-          />
+          <Image src="/images/icons/menu.png" alt="Menu" width={24} height={24} />
         </button>
-
-        {/* Logo (wrap with Link to home) */}
         <Link href="/">
           <div className="flex items-center space-x-2 cursor-pointer">
-            <Image
-              src="/images/brand-icon.png"
-              alt="Brand Icon"
-              width={20}
-              height={20}
-            />
+            <Image src="/images/brand-icon.png" alt="Brand Icon" width={20} height={20} />
             <span className="text-lg font-semibold text-blue-400">Brand</span>
           </div>
         </Link>
-
-        {/* Cart & Profile Icons */}
         <div className="flex space-x-4">
-          <Link href="/cart-management">
-            <Image
-              src="/images/icons/cart.png"
-              alt="Cart"
-              width={24}
-              height={24}
-            />
+          <Link href={userId ? `/cart-managment/${userId}` : "#"}>
+            <Image src="/images/icons/cart.png" alt="Cart" width={24} height={24} />
           </Link>
           <Link href="/profile">
-            <Image
-              src="/images/icons/profile.png"
-              alt="User"
-              width={24}
-              height={24}
-            />
+            <Image src="/images/icons/profile.png" alt="User" width={24} height={24} />
           </Link>
         </div>
       </div>
 
-      {/* Mobile Search Bar */}
+      {/* Mobile Search */}
       <div className="md:hidden px-4 py-2">
         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-          <input
-            type="text"
-            placeholder="🔍 Search"
-            className="flex-1 p-2 outline-none text-sm"
-          />
+          <input type="text" placeholder="🔍 Search" className="flex-1 p-2 outline-none text-sm" />
         </div>
       </div>
 
@@ -167,24 +132,17 @@ const Header = () => {
         ))}
       </div>
 
-      {/* Mobile Menu (Slide In) */}
+      {/* Mobile Side Menu */}
       <div
         className={`absolute top-0 left-0 h-screen w-64 bg-white shadow-md transform ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         } transition-transform duration-300 md:hidden`}
       >
-        {/* Close Button */}
         <div className="p-4 flex justify-end">
           <button onClick={() => setIsMobileMenuOpen(false)}>
-            <Image
-              src="/images/icons/arrow_back.png"
-              alt="Close"
-              width={24}
-              height={24}
-            />
+            <Image src="/images/icons/arrow_back.png" alt="Close" width={24} height={24} />
           </button>
         </div>
-        {/* Menu Items */}
         <nav className="flex flex-col space-y-4 p-6">
           {error && <p className="text-red-500">{error}</p>}
           {categories.length > 0 ? (
@@ -206,18 +164,12 @@ const Header = () => {
       {/* Desktop Bottom Navigation */}
       <div className="hidden md:flex justify-between items-center border-b border-gray-200 text-gray-800 text-sm font-medium py-3 max-w-7xl mx-auto px-4 relative">
         <div className="flex space-x-5">
-          {/* "All category" with desktop dropdown */}
           <div className="relative">
             <button
               className="flex items-center space-x-1 cursor-pointer"
               onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
             >
-              <Image
-                src="/images/icons/menu.png"
-                width={16}
-                height={16}
-                alt="Menu"
-              />
+              <Image src="/images/icons/menu.png" width={16} height={16} alt="Menu" />
               <span>All category</span>
             </button>
             {isDesktopMenuOpen && (
@@ -258,13 +210,7 @@ const Header = () => {
           </span>
           <span className="flex items-center space-x-1 cursor-pointer">
             <span>Ship to</span>
-            <Image
-              src="/images/germany.png"
-              alt="Flag"
-              width={20}
-              height={12}
-              className="rounded-sm"
-            />
+            <Image src="/images/germany.png" alt="Flag" width={20} height={12} />
             <span className="text-xs text-gray-500">⌄</span>
           </span>
         </div>

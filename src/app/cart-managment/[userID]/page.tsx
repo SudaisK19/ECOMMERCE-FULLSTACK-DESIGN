@@ -35,7 +35,26 @@ export default function CartPage() {
   const router = useRouter();
   const { userID } = useParams(); // dynamic route parameter
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [savedItems, setSavedItems] = useState<CartItem[]>([]);
+  const [savedItems, setSavedItems] = useState<ProductDetails[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  
+  
+  // Get user profile from API
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/profile");
+        if (!res.ok) throw new Error("Failed to fetch user profile");
+        const data = await res.json();
+        setUserId(data.user._id);
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+      }
+    };
+    fetchUser();
+  }, []);
 
   // Helper: transform items to have top-level name, price, stock, images, and productId as string.
  // ✅ Insert the updated `transformItem` function here.
@@ -72,6 +91,35 @@ const transformItem = (item: BackendCartItem): CartItem => ({
       .catch((err) => console.error("Error fetching cart:", err));
   }, [userID]);
 
+  // Fetch saved items
+  // Fetch wishlist items and store them as ProductDetails
+  useEffect(() => {
+    const fetchSavedItems = async () => {
+      try {
+        const response = await fetch(`/api/shop/wishlist/${userID}`);
+        const data = await response.json();
+        const wishlistItems = data.wishlist?.items || [];
+
+        const savedProducts: ProductDetails[] = wishlistItems.map((item: any) => ({
+          _id: item.productId._id,
+          name: item.productId.name,
+          price: item.productId.price,
+          stock: item.productId.stock,
+          images: item.productId.images,
+        }));
+
+        setSavedItems(savedProducts);
+      } catch (error) {
+        console.error("Error fetching saved items:", error);
+      }
+    };
+
+    if (userID) {
+      fetchSavedItems();
+    }
+  }, [userID]);
+
+  
   // 2. Save cart changes to local storage whenever the cart changes
   useEffect(() => {
     if (userID) {
@@ -152,46 +200,113 @@ const transformItem = (item: BackendCartItem): CartItem => ({
     updateCartOnServer(updated);
   };
 
-  // 8. Save an item for later: remove from cart and add to savedItems (client side)
-  const handleSaveForLater = (itemId: string) => {
-    const itemToSave = cartItems.find((it) => it._id === itemId);
-    if (!itemToSave) return;
-    const newCart = cartItems.filter((it) => it._id !== itemId);
-    setCartItems(newCart);
-    setSavedItems((prev) => [...prev, itemToSave]);
-    updateCartOnServer(newCart);
+  const handleSaveForLater = async (itemId: string) => {
+    const item = cartItems.find((i) => i._id === itemId);
+    if (!item) return;
+  
+    try {
+      // 1. Add product to wishlist
+      await fetch(`/api/shop/wishlist/${userID}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: item.productId }),
+      });
+  
+      // 2. Remove product from cart
+      const updatedCart = cartItems.filter((i) => i._id !== itemId);
+      setCartItems(updatedCart);
+      updateCartOnServer(updatedCart);
+  
+      // 3. Refetch wishlist and update saved items
+      const res = await fetch(`/api/shop/wishlist/${userID}`);
+      const data = await res.json();
+      const wishlistItems = data.wishlist?.items || [];
+  
+      const updatedSavedItems: ProductDetails[] = wishlistItems.map((item: any) => ({
+        _id: item.productId._id,
+        name: item.productId.name,
+        price: item.productId.price,
+        stock: item.productId.stock,
+        images: item.productId.images,
+      }));
+  
+      setSavedItems(updatedSavedItems);
+    } catch (err) {
+      console.error("Failed to save item for later:", err);
+    }
   };
 
-  // 9. Move an item from saved-for-later back to the cart
-  const handleMoveToCart = (itemId: string) => {
-    const itemToMove = savedItems.find((it) => it._id === itemId);
-    if (!itemToMove) return;
-    const newSaved = savedItems.filter((it) => it._id !== itemId);
-    setSavedItems(newSaved);
-    const newCart = [...cartItems, itemToMove];
-    setCartItems(newCart);
-    updateCartOnServer(newCart);
+  const handleMoveToCart = async (productId: string) => {
+    try {
+      // Step 1: Remove from wishlist
+      const deleteRes = await fetch(`/api/shop/wishlist/${userID}?productId=${productId}`, {
+        method: "DELETE",
+      });
+  
+      if (!deleteRes.ok) {
+        throw new Error("Failed to remove item from wishlist");
+      }
+  
+      // Step 2: Add to cart
+      const addToCartRes = await fetch(`/api/shop/cart/${userID}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, quantity: 1 }),  // Ensure you're passing the correct data
+      });
+  
+      if (!addToCartRes.ok) {
+        throw new Error("Failed to add item to cart");
+      }
+  
+      // Step 3: Refetch updated data
+      const [cartRes, wishlistRes] = await Promise.all([
+        fetch(`/api/shop/cart/${userID}`),
+        fetch(`/api/shop/wishlist/${userID}`),
+      ]);
+  
+      const cartData = await cartRes.json();
+      const wishlistData = await wishlistRes.json();
+  
+      setCartItems(cartData.cart?.items || []);
+  
+      const updatedSavedItems: ProductDetails[] =
+        wishlistData.wishlist?.items?.map((item: any) => ({
+          _id: item.productId._id,
+          name: item.productId.name,
+          price: item.productId.price,
+          stock: item.productId.stock,
+          images: item.productId.images,
+        })) || [];
+  
+      setSavedItems(updatedSavedItems);
+    } catch (err) {
+      console.error("Failed to move item to cart:", err);
+    }
   };
-
   // 10. Redirect back to shopping (home page)
   const handleBackToShopping = () => {
     router.push("/");
   };
+  console.log("savedItems in render:", savedItems);
 
   return (
-    <main className="cart-page-container">
-      <h1 className="cart-page-title">My cart ({cartItems.length})</h1>
+    <main className="w-full min-h-screen bg-gray-100 font-sans py-10">
+      <h1 className="text-2xl font-semibold text-gray-900 ml-10 mb-5">
+        My cart ({cartItems.length})
+      </h1>
 
-      <div className="cart-main">
+      <div className="flex flex-col lg:flex-row gap-6 px-10">
         {/* LEFT SIDE: CART ITEMS */}
-        <section className="cart-items-section">
+        <section className="flex-1 bg-white border border-gray-300 rounded-md p-5">
           {cartItems.length === 0 ? (
             <p>Your cart is empty.</p>
           ) : (
             cartItems.map((item) => (
-              <div key={item._id} className="cart-item">
-                <div className="cart-item-img">
-                  {/* Use product image from the DB if available, otherwise fallback */}
+              <div
+                key={item._id}
+                className="flex gap-4 border-b border-gray-300 pb-5 mb-5 last:border-b-0"
+              >
+                <div className="w-20 h-20 relative">
                   <Image
                     src={
                       item.images && item.images.length > 0
@@ -203,22 +318,23 @@ const transformItem = (item: BackendCartItem): CartItem => ({
                     height={80}
                   />
                 </div>
-                <div className="cart-item-content">
-                  <div className="cart-item-top">
-                    <div className="cart-item-details">
-                      <h3 className="cart-item-title">
+                <div className="flex-1 flex flex-col">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="text-base font-medium text-gray-900 mb-1">
                         {item.name || "T-shirt"}
                       </h3>
-                      <p className="cart-item-subtitle">
-                        Price: ${item.price?.toFixed(2)} — Stock: {item.stock ?? 0}
+                      <p className="text-sm text-gray-500">
+                        Price: ${item.price?.toFixed(2)} — Stock:{" "}
+                        {item.stock ?? 0}
                       </p>
                     </div>
-                    <div className="cart-item-right">
-                      <div className="cart-item-price">
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="text-base font-medium text-gray-900">
                         ${(item.price ?? 0).toFixed(2)}
                       </div>
-                      <div className="qty-box">
-                        <label className="qty-label">Qty:</label>
+                      <div className="flex items-center border border-gray-300 rounded-md px-2 py-1 text-sm">
+                        <label className="mr-2">Qty:</label>
                         <select
                           value={item.quantity}
                           onChange={(e) =>
@@ -227,33 +343,32 @@ const transformItem = (item: BackendCartItem): CartItem => ({
                               parseInt(e.target.value)
                             )
                           }
+                          className="outline-none bg-transparent"
                         >
-                          {Array.from({ length: 20 }, (_, i) => i + 1).map(
-                            (num) => (
-                              <option key={num} value={num}>
-                                {num}
-                              </option>
-                            )
-                          )}
+                          {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
+                            <option key={num} value={num}>
+                              {num}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
                   </div>
-                  <div className="cart-item-actions">
+                  <div className="flex gap-4 mt-2 text-sm">
                     <button
-                      className="cart-remove-btn"
+                      className="text-red-600 hover:underline"
                       onClick={() => removeItem(item._id)}
                     >
                       Remove
                     </button>
                     <button
-                      className="cart-save-btn"
+                      className="text-blue-600 hover:underline"
                       onClick={() => handleSaveForLater(item._id)}
                     >
                       Save for later
                     </button>
                   </div>
-                  <div style={{ marginTop: "8px", fontSize: "14px" }}>
+                  <div className="mt-2 text-sm text-gray-700">
                     Subtotal: ${getSubtotal(item).toFixed(2)}
                   </div>
                 </div>
@@ -261,76 +376,87 @@ const transformItem = (item: BackendCartItem): CartItem => ({
             ))
           )}
 
-          <div className="cart-bottom-buttons">
-            <button className="back-to-shop-btn" onClick={handleBackToShopping}>
-              <span className="arrow-left">&larr;</span> Back to shop
+          <div className="flex justify-between mt-6">
+            <button
+              onClick={handleBackToShopping}
+              className="bg-gradient-to-b from-[#127fff] to-[#0067ff] text-white py-2 px-5 rounded-md text-base font-medium flex items-center hover:opacity-90 transition"
+            >
+              <span className="mr-1">&larr;</span> Back to shop
             </button>
-            <button className="remove-all-btn" onClick={removeAllItems}>
+            <button
+              onClick={removeAllItems}
+              className="border border-[#dee2e7] bg-white text-[#0d6efd] text-base px-4 py-2 rounded-md hover:bg-[#f8f9fa] transition"
+            >
               Remove All
             </button>
+
           </div>
         </section>
 
         {/* RIGHT SIDE: COUPON + SUMMARY */}
-        <aside className="cart-aside">
-          <div className="cart-coupon-box">
-            <p className="cart-coupon-label">Have a coupon?</p>
-            <div className="coupon-box">
-              <input type="text" placeholder="Add coupon" />
-              <button>Apply</button>
+        <aside className="w-full lg:w-80 flex flex-col gap-4">
+          <div className="bg-white border border-gray-300 rounded-md p-4">
+            <p className="font-medium text-gray-800 mb-2">Have a coupon?</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Add coupon"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+              <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700">
+                Apply
+              </button>
             </div>
           </div>
 
-          <div className="cart-summary">
-            <div className="summary-row">
+          <div className="bg-white border border-gray-300 rounded-md p-4">
+            <div className="flex justify-between mb-2">
               <span>Total price:</span>
               <span>${totalPrice.toFixed(2)}</span>
             </div>
-            <div className="summary-row">
+            <div className="flex justify-between mb-2">
               <span>Discount:</span>
-              <span className="discount">- $60.00</span>
+              <span className="text-green-600">- $60.00</span>
             </div>
-            <div className="summary-row">
+            <div className="flex justify-between mb-2">
               <span>Tax:</span>
-              <span className="tax">+ $14.00</span>
+              <span className="text-yellow-600">+ $14.00</span>
             </div>
-            <hr />
-            <div className="summary-total">
+            <hr className="my-2" />
+            <div className="flex justify-between font-semibold text-gray-900">
               <span>Total:</span>
-              <span className="final-price">
-                ${(totalPrice - 60 + 14).toFixed(2)}
-              </span>
+              <span>${(totalPrice - 60 + 14).toFixed(2)}</span>
             </div>
-            <button className="checkout-btn">Checkout</button>
+            <button className="w-full mt-4 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 text-sm">
+              Checkout
+            </button>
           </div>
         </aside>
       </div>
 
       {/* SAVED FOR LATER SECTION */}
-      <div className="saved-for-later">
-        <h2 className="saved-title">Saved for later</h2>
+      <div className="mt-10 mx-10 bg-white border border-[#dee2e7] rounded-md p-5">
+        <h2 className="text-[20px] font-semibold text-[#1c1c1c] mb-5 text-left">Saved for later</h2>
         {savedItems.length === 0 ? (
           <p>No items saved for later.</p>
         ) : (
-          <div className="saved-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {savedItems.map((item) => (
-              <div key={item._id} className="saved-card">
+              <div key={item._id} className="text-left">
                 <Image
-                  src={
-                    item.images && item.images.length > 0
-                      ? item.images[0]
-                      : "/images/products/tablet.png"
-                  }
+                  src={item.images?.[0] ?? "/images/products/tablet.png"}
                   alt={item.name || "Saved Item"}
                   width={80}
                   height={80}
-                  className="saved-img"
+                  className="rounded-md mb-2 object-cover"
                 />
-                <p className="saved-price">${(item.price ?? 0).toFixed(2)}</p>
-                <p className="saved-name">{item.name || "Saved Item"}</p>
+                <p className="text-[16px] font-semibold text-[#1c1c1c] mb-1">
+                  ${(item.price ?? 0).toFixed(2)}
+                </p>
+                <p className="text-sm text-[#8b96a5] mb-2">{item.name || "Saved Item"}</p>
                 <button
-                  className="saved-move-btn"
                   onClick={() => handleMoveToCart(item._id)}
+                  className="border border-[#dee2e7] bg-white rounded-md px-4 py-1.5 text-sm font-medium text-[#0d6efd] hover:bg-[#f8f9fa] transition"
                 >
                   Move to cart
                 </button>
@@ -340,427 +466,25 @@ const transformItem = (item: BackendCartItem): CartItem => ({
         )}
       </div>
 
+
       {/* BLUE BANNER SECTION */}
-      <div className="blue-banner">
-        <div className="banner-text">
-          <h3>Super discount on more than 100 USD</h3>
-          <p>Have you ever finally just write dummy info</p>
+      <div className="mx-10 mt-10 bg-[#127fff] text-white p-5 rounded-md flex items-center">
+        <div className="text-left">
+          <h3 className="text-[20px] font-semibold mb-2">Super discount on more than 100 USD</h3>
+          <p className="text-[#f0f0f0] text-[16px]">Have you ever finally just write dummy info</p>
         </div>
-        <button className="banner-yellow-btn">
+        <button className="ml-auto bg-transparent border-none cursor-pointer">
           <Image
             src="/images/yellow-button.png"
             alt="Shop now"
             width={100}
             height={100}
+            className="block"
           />
         </button>
       </div>
 
-      {/* STYLES */}
-      <style jsx>{`
-         * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-
-        .cart-page-container {
-          width: 100%;
-          min-height: 100vh;
-          background: #f7fafc;
-          font-family: "Inter", sans-serif;
-          padding: 40px 0;
-        }
-
-        .cart-page-title {
-          font-size: 24px;
-          font-weight: 600;
-          line-height: 32px;
-          color: #1c1c1c;
-          margin-left: 40px;
-          margin-bottom: 20px;
-        }
-
-        .cart-main {
-          display: flex;
-          gap: 20px;
-          padding: 0 40px;
-        }
-
-        .cart-items-section {
-          flex: 1;
-          background: #fff;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          padding: 20px;
-        }
-
-        .cart-item {
-          display: flex;
-          gap: 16px;
-          border-bottom: 1px solid #dee2e7;
-          padding-bottom: 20px;
-          margin-bottom: 20px;
-        }
-        .cart-item:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-        }
-
-        .cart-item-img {
-          position: relative;
-          width: 80px;
-          height: 80px;
-        }
-
-        .cart-item-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .cart-item-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-
-        .cart-item-title {
-          font-size: 16px;
-          font-weight: 500;
-          color: #1c1c1c;
-          margin-bottom: 4px;
-        }
-
-        .cart-item-subtitle {
-          font-size: 14px;
-          color: #8b96a5;
-        }
-
-        .cart-item-right {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 8px;
-        }
-
-        .cart-item-price {
-          font-size: 16px;
-          font-weight: 500;
-          color: #1c1c1c;
-        }
-
-        .qty-box {
-          position: relative;
-          display: flex;
-          align-items: center;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          height: 36px;
-          padding: 0 10px;
-          font-size: 14px;
-          color: #1c1c1c;
-        }
-        .qty-label {
-          margin-right: 4px;
-          font-weight: 400;
-          color: #1c1c1c;
-        }
-        .qty-box select {
-          border: none;
-          outline: none;
-          background: transparent;
-          appearance: none;
-          font-size: 14px;
-          color: #1c1c1c;
-          cursor: pointer;
-          padding-right: 16px;
-        }
-        .qty-box::after {
-          content: "";
-          position: absolute;
-          right: 8px;
-          width: 8px;
-          height: 8px;
-          border-right: 1px solid #8b96a5;
-          border-bottom: 1px solid #8b96a5;
-          transform: rotate(45deg);
-          pointer-events: none;
-        }
-
-        .cart-item-actions {
-          display: flex;
-          gap: 8px;
-          margin-top: 12px;
-        }
-        .cart-remove-btn,
-        .cart-save-btn {
-          padding: 4px 10px;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          background: #ffffff;
-          font-size: 13px;
-          line-height: 16px;
-          cursor: pointer;
-          font-weight: 500;
-        }
-        .cart-remove-btn {
-          color: #fa3434;
-        }
-        .cart-save-btn {
-          color: #0d6efd;
-        }
-
-        .cart-bottom-buttons {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 20px;
-        }
-        .back-to-shop-btn {
-          background: linear-gradient(180deg, #127fff 0%, #0067ff 100%);
-          border-radius: 6px;
-          color: #fff;
-          padding: 10px 20px;
-          border: none;
-          font-size: 16px;
-          font-weight: 500;
-          cursor: pointer;
-        }
-        .arrow-left {
-          margin-right: 5px;
-        }
-        .remove-all-btn {
-          border: 1px solid #dee2e7;
-          background: #ffffff;
-          border-radius: 6px;
-          padding: 0 16px;
-          font-size: 16px;
-          color: #0d6efd;
-          cursor: pointer;
-        }
-
-        .cart-aside {
-          width: 280px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-        .cart-coupon-box {
-          background: #fff;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          padding: 16px;
-        }
-        .cart-coupon-label {
-          font-size: 16px;
-          color: #505050;
-          margin-bottom: 8px;
-          font-weight: 400;
-        }.coupon-box {
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;   /* So height includes border */
-  height: 40px;
-  border-radius: 6px;
-  border: 1px solid #dee2e7;
-  /* overflow: hidden;        <-- Remove if it cuts off text */
-}
-
-.coupon-box input {
-  flex: 1;
-  border: none;
-  outline: none;
-  padding: 0 0px;
-  font-size: 14px;
-  color: #8b96a5;
-  background: #fff;
-  box-sizing: border-box;
-}
-
-.coupon-box button {
-  margin: 0;
-  border: none;
-  outline: none;
-  background: #0d6efd;      /* Example: blue background */
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1;           /* Ensures text is vertically centered */
-  padding: 0 0px;           /* Adjust horizontal space */
-  cursor: pointer;
-  height: 100%;             /* Match parent's height */
-   /* Visual separator */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;   /* So height includes border/padding */
-}
-
-        .cart-summary {
-          background: #fff;
-          border: 1px solid #dee2e7;
-          box-shadow: 0px 4px 10px rgba(56, 56, 56, 0.1);
-          border-radius: 6px;
-          padding: 16px;
-        }
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 8px;
-          font-size: 16px;
-          color: #505050;
-        }
-        .summary-row span:last-child {
-          min-width: 60px;
-          text-align: right;
-        }
-        .discount {
-          color: #fa3434;
-        }
-        .tax {
-          color: #00b517;
-        }
-        .cart-summary hr {
-          margin: 16px 0;
-          border: none;
-          border-top: 1px solid #e4e4e4;
-        }
-        .summary-total {
-          display: flex;
-          justify-content: space-between;
-          font-weight: 600;
-          margin-bottom: 16px;
-          font-size: 18px;
-          color: #1c1c1c;
-        }
-        .checkout-btn {
-          width: 100%;
-          height: 54px;
-          background: #00b517;
-          color: #fff;
-          font-size: 18px;
-          font-weight: 500;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-        }
-
-        .cart-info {
-          display: flex;
-          justify-content: flex-start;
-          gap: 80px;
-          margin-top: 40px;
-          padding: 0 40px;
-        }
-        .info-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .info-item img {
-          width: 40px;
-          height: 40px;
-        }
-        .info-text h4 {
-          margin: 0 0 4px 0;
-          font-size: 16px;
-          font-weight: 500;
-          color: #1c1c1c;
-        }
-        .info-text p {
-          margin: 0;
-          font-size: 14px;
-          color: #8b96a5;
-        }
-
-        .saved-for-later {
-          margin: 40px 40px 0;
-          background: #fff;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          padding: 20px;
-        }
-        .saved-title {
-          font-size: 20px;
-          font-weight: 600;
-          color: #1c1c1c;
-          margin-bottom: 20px;
-          text-align: left;
-        }
-        .saved-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 24px;
-        }
-        .saved-card {
-          background: none;
-          border: none;
-          text-align: left;
-        }
-        .saved-img {
-          position: relative;
-          width: 80px;
-          height: 80px;
-          object-fit: cover;
-          border-radius: 6px;
-          margin-bottom: 8px;
-        }
-        .saved-price {
-          font-size: 16px;
-          font-weight: 600;
-          color: #1c1c1c;
-          margin-bottom: 4px;
-        }
-        .saved-name {
-          font-size: 14px;
-          color: #8b96a5;
-          margin-bottom: 8px;
-        }
-        .saved-move-btn {
-          border: 1px solid #dee2e7;
-          background: #fff;
-          border-radius: 6px;
-          padding: 6px 16px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #0d6efd;
-          cursor: pointer;
-        }
-
-        .blue-banner {
-          width: auto;
-          margin: 40px 40px;
-          background-color: #127fff;
-          border-radius: 6px;
-          padding: 20px;
-          display: flex;
-          align-items: center;
-          color: #fff;
-        }
-        .banner-text {
-          text-align: left;
-        }
-        .banner-text h3 {
-          font-size: 20px;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-        .banner-text p {
-          font-size: 16px;
-          color: #f0f0f0;
-        }
-        .banner-yellow-btn {
-          margin-left: auto;
-          background: none;
-          border: none;
-          cursor: pointer;
-        }
-        .banner-yellow-btn img {
-          display: block;
-          width: 100px;
-          height: auto;
-        }
-      `}</style>
     </main>
+
   );
 }

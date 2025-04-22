@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import Sidebar from "@/components/Sidebar"; // Import Sidebar
+
 
 
 // Type definition for product details when populated from MongoDB.
@@ -37,8 +39,8 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [savedItems, setSavedItems] = useState<ProductDetails[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   
   
   // Get user profile from API
@@ -49,6 +51,8 @@ export default function CartPage() {
         if (!res.ok) throw new Error("Failed to fetch user profile");
         const data = await res.json();
         setUserId(data.user._id);
+        localStorage.setItem("userId", data.user._id);
+
       } catch (err) {
         console.error("Error fetching user profile:", err);
       }
@@ -288,6 +292,13 @@ const transformItem = (item: BackendCartItem): CartItem => ({
     router.push("/");
   };
   console.log("savedItems in render:", savedItems);
+  const openSidebar = () => {
+    setIsSidebarOpen(true); // Open the sidebar
+  };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false); // Close the sidebar
+  };
 
   return (
     <main className="w-full min-h-screen bg-gray-100 font-sans py-10">
@@ -427,7 +438,16 @@ const transformItem = (item: BackendCartItem): CartItem => ({
               <span>Total:</span>
               <span>${(totalPrice - 60 + 14).toFixed(2)}</span>
             </div>
-            <button className="w-full mt-4 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 text-sm">
+            
+            <button
+              onClick={openSidebar}
+              disabled={cartItems.length === 0}
+              className={`w-full mt-4 text-white py-2 rounded-md  text-sm ${
+                cartItems.length === 0
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700"
+              }`}
+            >
               Checkout
             </button>
           </div>
@@ -483,6 +503,17 @@ const transformItem = (item: BackendCartItem): CartItem => ({
           />
         </button>
       </div>
+      {/* Sidebar component for Checkout */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={closeSidebar}
+        cart={cartItems}
+        onPlaceOrder={(shippingAddress: string) => {
+          console.log("Placing order with address:", shippingAddress);
+          // Add order logic here or call your API
+        }}
+      />
+
 
     </main>
 

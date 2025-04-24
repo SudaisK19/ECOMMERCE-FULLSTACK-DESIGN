@@ -3,25 +3,29 @@ import { connect } from "@/dbConfig/dbConfig";
 import User from "@/models/Users";
 import jwt from "jsonwebtoken";
 
-connect();
-
 export async function POST(request: NextRequest) {
   try {
+    // Establish DB connection here instead of at the top level
+    await connect();
+
     const { email, password } = await request.json();
+
+    // Find user by email and include password in the result
     const user = await User.findOne({ email }).select("+password");
-    
+
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    
+
+    // Validate password (mocked here, normally you'd hash compare)
     if (password !== user.password) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
-    
+
     if (!process.env.JWT_SECRET) {
       throw new Error("JWT_SECRET is not defined");
     }
-    
+
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -51,8 +55,19 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error) {
-    console.error("Error in login route:", error); // ✅ Logs the error to prevent "unused" issue
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error in login route:", error.message);
+      return NextResponse.json(
+        { error: "Internal Server Error", details: error.message },
+        { status: 500 }
+      );
+    } else {
+      console.error("Unknown error occurred:", error);
+      return NextResponse.json(
+        { error: "Internal Server Error" },
+        { status: 500 }
+      );
+    }
   }
 }

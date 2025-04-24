@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';  // Correct import for useRouter
 
 // Functional component for the Order Failure page
 const OrderFailure = () => {

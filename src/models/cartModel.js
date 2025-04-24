@@ -21,7 +21,7 @@ const CartSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Usernew", // Use the same name as your user model
+      ref: "User", // Use the same name as your user model
       required: [true, "Please provide a user ID"],
     },
     items: {

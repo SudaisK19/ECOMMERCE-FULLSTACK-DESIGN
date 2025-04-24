@@ -3,21 +3,17 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Sidebarlisting from "@/components/sidebarlisting"; 
+import Sidebarlisting from "@/components/sidebarlisting";
 import Image from "next/image";
 
-
-
-/** Product interface using 'name' to match your schema */
 interface Product {
   _id: string;
   name: string;
   price: number;
   description: string;
-  images: string[]; // Updated to match the schema
+  images: string[];
 }
 
-/** Category interface */
 interface Category {
   _id: string;
   name: string;
@@ -28,564 +24,206 @@ export default function ProductListingPage() {
   const [viewMode, setViewMode] = useState("grid");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories] = useState<Category[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [wishlist, setWishlist] = useState<string[]>([]); // Store wishlist items as product IDs
+  const [saving, setSaving] = useState(false);
 
-  // Handlers for toggling the view mode
   const handleGridClick = () => setViewMode("grid");
   const handleListClick = () => setViewMode("list");
 
-  // Fetch products for the given category
+  // Fetch user info (user ID)
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/profile");
+        if (!res.ok) throw new Error("Failed to fetch user profile");
+        const data = await res.json();
+        setUserId(data.user._id);
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // Fetch products for the category
   useEffect(() => {
     if (!catID) return;
     fetch(`/api/shop/product-list/${catID}`, { cache: "no-store" })
       .then((res) => res.json())
-      .then((data) => {
-        console.log("Fetched products:", data.products);
-        setProducts(data.products || []);
-      })
+      .then((data) => setProducts(data.products || []))
       .catch((err) => console.error("Error fetching products:", err));
   }, [catID]);
 
-  
-  
+  // Fetch the user's wishlist and set only product IDs in state
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/shop/wishlist/${userId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.wishlist?.items) {
+          // Extract product IDs from the wishlist items
+          const wishlistItems = data.wishlist.items.map((item: any) => item.productId._id);
+          setWishlist(wishlistItems); // Store product IDs in state
+        }
+      })
+      .catch((err) => console.error("Error fetching wishlist:", err));
+  }, [userId]);
 
-  // Find the current category by matching catID to display its name
   const currentCategory = categories.find((cat) => cat._id === catID);
 
+  // Handle "Save for Later" action
+  const handleSaveForLater = async (productId: string) => {
+    if (saving) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/shop/wishlist/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        // Update wishlist in state (add product ID)
+        setWishlist((prev) => [...prev, productId]);
+      } else {
+        throw new Error("Failed to save item");
+      }
+    } catch (err) {
+      console.error("Failed to save for later:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="product-listing-container">
-      
-      <Sidebarlisting/>
-      {/* MAIN CONTENT AREA */}
-      <main className="main-content">
-        <div className="top-bar">
-          <div className="top-bar-inner">
-            <div className="top-bar-left">
-              <p className="top-bar-text">
-                {products.length} items in category:{" "}
+    <div className="flex mx-auto p-4 max-w-[1400px]">
+      <Sidebarlisting />
+
+      <main className="flex-1 relative">
+        <div className="bg-white border border-[#dee2e7] rounded-md mb-4 p-4 font-sans">
+          <div className="flex items-center justify-between">
+            <p className="text-gray-800">
+              {products.length} items in category:{" "}
+              <span className="font-medium">
                 {currentCategory ? currentCategory.name : catID}
-              </p>
-            </div>
-            <div className="top-bar-right">
-              <div className="verified-only">
-                <input type="checkbox" id="verifiedOnly" defaultChecked />
-                <label htmlFor="verifiedOnly">Verified only</label>
-              </div>
-              <div className="selectbox-done">
-                <span className="selectbox-text">Featured</span>
-                <span className="selectbox-icon">
+              </span>
+            </p>
+            <div className="flex items-center gap-4">
+              <button
+                className={`w-10 h-10 flex items-center justify-center rounded ${
+                  viewMode === "grid" ? "bg-[#eff2f4]" : ""
+                }`}
+                onClick={handleGridClick}
+                aria-label="Grid view"
+              >
                 <Image
-                  src="/images/arrow-d.png"
-                  alt="Arrow down"
-                  className="arrow-down"
-                  width={24}
-                  height={24}
+                  src="/images/grid-button.png"
+                  alt="Grid"
+                  width={20}
+                  height={20}
                 />
-
-                </span>
-              </div>
-              <div className="btn-group">
-                <button
-                  className={`btn-grid ${viewMode === "grid" ? "active" : ""}`}
-                  onClick={handleGridClick}
-                  aria-label="Grid view"
-                >
-                  <Image
-                    src="/images/grid-button.png"
-                    alt="Grid view"
-                    className="toggle-icon"
-                    width={32}
-                    height={32}
-                  />
-
-                </button>
-                <button
-                  className={`btn-list ${viewMode === "list" ? "active" : ""}`}
-                  onClick={handleListClick}
-                  aria-label="List view"
-                >
-                  <Image
-                    src="/images/list-button.png"
-                    alt="List view"
-                    className="toggle-icon"
-                    width={32}
-                    height={32}
-                  />
-                </button>
-              </div>
+              </button>
+              <button
+                className={`w-10 h-10 flex items-center justify-center rounded ${
+                  viewMode === "list" ? "bg-[#eff2f4]" : ""
+                }`}
+                onClick={handleListClick}
+                aria-label="List view"
+              >
+                <Image
+                  src="/images/list-button.png"
+                  alt="List"
+                  width={20}
+                  height={20}
+                />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Product listing cards */}
-        <div className={`products-wrapper ${viewMode}-view grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 px-4`}>
+        <div
+          className={`${
+            viewMode === "grid"
+              ? "grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+              : "flex flex-col gap-4"
+          } px-4`}
+        >
           {products.length > 0 ? (
             products.map((product) => (
-              <div key={product._id} className="product-card bg-white shadow-md rounded-lg p-4 hover:shadow-xl transition-all">
-                {/* Wishlist Button */}
-                <button className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-transform">
-                  <Image src="/images/cart-button.png" alt="Add to cart" width={20} height={20} />
+              <div
+                key={product._id}
+                className={`relative bg-white shadow-md rounded-lg p-4 transition-all hover:shadow-xl ${
+                  viewMode === "list" ? "flex items-center gap-4" : ""
+                }`}
+              >
+                <button
+                  className="absolute top-3 right-3 bg-white p-2 rounded-full shadow hover:scale-110 transition-transform"
+                  onClick={() => handleSaveForLater(product._id)} // Pass product ID here
+                  disabled={saving} // Disable while saving
+                >
+                  <Image
+                    src={
+                      wishlist.includes(product._id)
+                        ? "/images/icons/heart-filled.png"
+                        : "/images/wishlist-button.png"
+                    }
+                    alt="Wishlist"
+                    width={20}
+                    height={20}
+                  />
                 </button>
 
-                {/* Product Image - Handles Both Grid & List View */}
-                <div className={`product-image flex ${viewMode === 'list' ? 'flex-row items-center' : 'justify-center'}`}>
+                <div
+                  className={`${
+                    viewMode === "list"
+                      ? "w-[100px] h-[100px] flex-shrink-0"
+                      : "w-full flex justify-center"
+                  }`}
+                >
                   <Image
-                    src={product.images?.length > 0 ? product.images[0] : "/images/default-product.png"}
+                    src={
+                      product.images?.length > 0
+                        ? product.images[0]
+                        : "/images/default-product.png"
+                    }
                     alt={product.name}
-                    width={viewMode === 'list' ? 100 : 250} 
-                    height={viewMode === 'list' ? 100 : 250}
-                    className={`object-cover rounded-lg ${viewMode === 'list' ? 'mr-4' : ''}`}
+                    width={viewMode === "list" ? 100 : 200}
+                    height={viewMode === "list" ? 100 : 200}
+                    className="rounded-lg object-cover"
                   />
                 </div>
 
-                {/* Product Details */}
-                <div className="product-details text-center mt-3">
-                  <h3 className="product-title font-semibold text-gray-900">{product.name}</h3>
-                  <div className="product-price text-lg font-bold text-blue-600">${product.price}</div>
-                  <p className="product-description text-sm text-gray-600">{product.description}</p>
+                <div
+                  className={`${
+                    viewMode === "list" ? "flex flex-col" : "text-center mt-3"
+                  } flex-1`}
+                >
+                  <h3 className="font-semibold text-gray-900 text-lg">
+                    {product.name}
+                  </h3>
+                  <div className="text-blue-600 font-bold text-lg">
+                    ${product.price}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">{product.description}</p>
 
-                  {/* ✅ Next.js Link for navigation */}
                   <Link href={`/product-detail/${product._id}`} passHref>
-                    <span className="view-details text-blue-500 hover:underline cursor-pointer">View details</span>
+                    <span className="text-blue-500 hover:underline cursor-pointer text-sm mt-2 inline-block">
+                      View details
+                    </span>
                   </Link>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-500 col-span-full">No products found for this category.</p>
+            <p className="text-center text-gray-500 col-span-full">
+              No products found for this category.
+            </p>
           )}
         </div>
-
-        {/* PAGINATION (if needed) */}
-        <div className="pagination-container">
-          <button className="page-btn disabled">&lt;</button>
-          <button className="page-btn active">1</button>
-          <button className="page-btn">2</button>
-          <button className="page-btn">3</button>
-          <button className="page-btn">...</button>
-          <button className="page-btn">10</button>
-          <button className="page-btn">&gt;</button>
-        </div>
       </main>
-
-      {/* --- STYLES (inline for demonstration) --- */}
-      <style jsx>{`
-        /* PAGE LAYOUT */
-        .product-listing-container {
-          display: flex;
-          margin: 0 auto;
-          padding: 1rem;
-          max-width: 1400px;
-        }
-        /* SIDEBAR */
-        .sidebar-filters {
-          width: 240px;
-          margin-right: 2rem;
-        }
-        .collapsible-section {
-          border-top: 1px solid #dee2e7;
-          padding-top: 1rem;
-          margin-bottom: 1rem;
-        }
-        .collapsible-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          cursor: pointer;
-          margin-bottom: 0.5rem;
-        }
-        .collapsible-title {
-          font-family: "Inter", sans-serif;
-          font-weight: 600;
-          font-size: 16px;
-          color: #1c1c1c;
-          margin: 0;
-        }
-        .collapsible-icon {
-          display: flex;
-          align-items: center;
-        }
-        .arrow-img {
-          width: 16px;
-          height: 16px;
-          transition: transform 0.2s;
-        }
-        .arrow-open {
-          transform: rotate(180deg);
-        }
-        .arrow-closed {
-          transform: rotate(0deg);
-        }
-        .collapsible-body {
-          margin-top: 0.5rem;
-        }
-        .filter-list {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          font-family: "Inter", sans-serif;
-        }
-        .filter-list li {
-          margin-bottom: 0.5rem;
-          cursor: pointer;
-        }
-        .see-all {
-          display: inline-block;
-          margin-top: 0.5rem;
-          color: #0d6efd;
-          font-size: 14px;
-          text-decoration: none;
-          font-family: "Inter", sans-serif;
-        }
-        .checkbox-row {
-          display: flex;
-          align-items: center;
-          margin-bottom: 0.5rem;
-          font-family: "Inter", sans-serif;
-        }
-        .checkbox-row input[type="checkbox"] {
-          margin-right: 0.5rem;
-        }
-        .checkbox-row label {
-          font-size: 14px;
-          color: #1c1c1c;
-        }
-        /* PRICE RANGE */
-        .price-inputs {
-          display: flex;
-          gap: 1rem;
-          margin: 0.5rem 0;
-        }
-        .price-inputs label {
-          display: block;
-          font-family: "Inter", sans-serif;
-          font-size: 14px;
-          margin-bottom: 0.25rem;
-          color: #1c1c1c;
-        }
-        .price-inputs input {
-          width: 80px;
-          padding: 4px;
-          border: 1px solid #dee2e7;
-          border-radius: 4px;
-          font-family: "Inter", sans-serif;
-        }
-        .range-bar {
-          position: relative;
-          height: 6px;
-          background: #dee2e7;
-          border-radius: 3px;
-          margin-bottom: 1rem;
-          margin-top: 0.5rem;
-        }
-        .range-active {
-          position: absolute;
-          left: 20%;
-          width: 50%;
-          top: 0;
-          bottom: 0;
-          background: #0d6efd;
-          border-radius: 3px;
-        }
-        .range-control {
-          position: absolute;
-          width: 16px;
-          height: 16px;
-          background: #ffffff;
-          border: 2px solid #0d6efd;
-          border-radius: 50%;
-          top: 50%;
-          transform: translateY(-50%);
-          cursor: pointer;
-        }
-        .left-control {
-          left: 20%;
-        }
-        .right-control {
-          left: 70%;
-        }
-        .apply-button {
-          padding: 6px 12px;
-          background: #0d6efd;
-          color: #fff;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-family: "Inter", sans-serif;
-        }
-        /* RATING STARS */
-        .stars {
-          display: inline-flex;
-          gap: 2px;
-        }
-        .star {
-          width: 16px;
-          height: 16px;
-          background: url("/images/star-empty.png") no-repeat center/cover;
-          display: inline-block;
-        }
-        .star-active {
-          background: url("/images/star-filled.png") no-repeat center/cover;
-        }
-        /* MAIN CONTENT + TOP BAR */
-        .main-content {
-          flex: 1;
-          position: relative;
-        }
-        .top-bar {
-          background: #ffffff;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          margin-bottom: 1rem;
-          padding: 0.5rem;
-          font-family: "Inter", sans-serif;
-        }
-        .top-bar-inner {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .top-bar-right {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-right: 1rem;
-        }
-        .verified-only {
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-        }
-        .verified-only input[type="checkbox"] {
-          width: 20px;
-          height: 20px;
-          background: #0d6efd;
-          border-radius: 5px;
-          cursor: pointer;
-        }
-        .top-bar-text {
-          margin: 0 1rem;
-          font-family: "Inter", sans-serif;
-        }
-        .selectbox-done {
-          position: relative;
-          width: 172px;
-          height: 40px;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 0.5rem;
-          cursor: pointer;
-        }
-        .selectbox-text {
-          font-family: "Inter", sans-serif;
-          font-size: 16px;
-          color: #1c1c1c;
-        }
-        .selectbox-icon {
-          display: flex;
-          align-items: center;
-        }
-        .arrow-down {
-          width: 8px;
-          height: 8px;
-          margin-left: 4px;
-        }
-        .btn-group {
-          display: flex;
-          gap: 0.25rem;
-        }
-        .btn-grid,
-        .btn-list {
-          width: 38px;
-          height: 40px;
-          border: none;
-          background: none;
-          padding: 0;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .btn-grid.active,
-        .btn-list.active {
-          background: #eff2f4;
-        }
-        .toggle-icon {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-        /* PRODUCT CARDS */
-        .products-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .products-wrapper.grid-view {
-          flex-direction: row;
-          flex-wrap: wrap;
-        }
-        .products-wrapper.grid-view .product-card {
-          width: calc(33.333% - 1rem);
-        }
-        .products-wrapper.list-view .product-card {
-          width: 100%;
-        }
-        .product-card {
-          position: relative;
-          min-height: 230px;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          background: #ffffff;
-          padding: 1rem;
-          display: flex;
-          gap: 1rem;
-        }
-        .btn-favorite {
-          position: absolute;
-          top: 1rem;
-          right: 1rem;
-          width: 40px;
-          height: 40px;
-          border: none;
-          background: none;
-          padding: 0;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .favorite-icon {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-        .product-image {
-          width: 20%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #fff;
-        }
-        .image-placeholder {
-          background-color: #f0f0f0;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #8b96a5;
-          font-size: 14px;
-          border-radius: 6px;
-          font-family: "Inter", sans-serif;
-        }
-        .product-details {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-        .product-title {
-          font-family: "Inter", sans-serif;
-          font-size: 16px;
-          font-weight: 500;
-          color: #1c1c1c;
-          margin: 0;
-        }
-        .product-price {
-          margin-top: 0.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .price {
-          font-family: "Inter", sans-serif;
-          font-weight: 600;
-          font-size: 20px;
-          color: #1c1c1c;
-        }
-        .old-price {
-          font-family: "Inter", sans-serif;
-          font-weight: 600;
-          font-size: 16px;
-          color: #8b96a5;
-          text-decoration: line-through;
-        }
-        .old-price.hidden {
-          visibility: hidden;
-        }
-        .product-rating {
-          margin-top: 0.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-        }
-        .rating-text {
-          font-family: "Inter", sans-serif;
-          font-size: 16px;
-          color: #8b96a5;
-        }
-        .dot-separator {
-          width: 4px;
-          height: 4px;
-          background: #dee2e7;
-          border-radius: 50%;
-          margin: 0 0.25rem;
-        }
-        .free-shipping {
-          font-family: "Inter", sans-serif;
-          font-size: 16px;
-          color: #00b517;
-        }
-        .product-description {
-          font-family: "Inter", sans-serif;
-          font-size: 16px;
-          line-height: 24px;
-          color: #505050;
-          margin: 0.5rem 0;
-          flex: 1;
-        }
-        .view-details {
-          font-family: "Inter", sans-serif;
-          font-weight: 500;
-          font-size: 16px;
-          color: #0d6efd;
-          text-decoration: none;
-        }
-        /* PAGINATION */
-        .pagination-container {
-          display: inline-flex;
-          border: 1px solid #dee2e7;
-          border-radius: 6px;
-          overflow: hidden;
-          margin: 2rem auto 0 auto;
-        }
-        .page-btn {
-          border: none;
-          background: #fff;
-          padding: 8px 16px;
-          cursor: pointer;
-          color: #505050;
-          font-family: "Inter", sans-serif;
-          font-size: 16px;
-          transition: background 0.2s ease;
-        }
-        .page-btn + .page-btn {
-          border-left: 1px solid #dee2e7;
-        }
-        .page-btn.active {
-          background: #0d6efd;
-          color: #fff;
-        }
-        .page-btn:hover:not(.active):not(.disabled) {
-          background: #f5f5f5;
-        }
-        .page-btn.disabled {
-          color: #ccc;
-          cursor: not-allowed;
-        }
-      `}</style>
     </div>
   );
 }

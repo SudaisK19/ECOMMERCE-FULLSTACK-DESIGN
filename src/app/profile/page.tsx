@@ -32,7 +32,7 @@ export default function ProfilePage() {
 
         if (!res.ok) {
           setError(data.error || "Failed to fetch profile");
-          router.replace("/login"); // 🚀 Redirect if user is not logged in
+          router.replace("/auth"); // 🚀 Redirect if user is not logged in
         } else {
           setProfile(data.user);
           setFormData({
@@ -44,7 +44,7 @@ export default function ProfilePage() {
         }
       } catch {
         setError("Error fetching profile");
-        router.replace("/login"); // 🚀 Redirect on fetch error
+        router.replace("/auth"); // 🚀 Redirect on fetch error
       } finally {
         setLoading(false);
       }
@@ -56,7 +56,7 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
-      if (res.ok) router.push("/login");
+      if (res.ok) router.push("/auth");
       else alert("Logout failed");
     } catch {
       alert("Logout error");

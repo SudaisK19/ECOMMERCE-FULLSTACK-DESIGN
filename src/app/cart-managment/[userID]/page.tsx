@@ -4,9 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Sidebar from "@/components/Sidebar"; // Import Sidebar
 
-
-
-// Type definition for product details when populated from MongoDB.
+// Type definitions...
 interface ProductDetails {
   _id: string;
   name?: string;
@@ -15,22 +13,15 @@ interface ProductDetails {
   images?: string[];
 }
 
-// Type definition for items retrieved from the backend.
-interface BackendCartItem {
-  _id: string;
-  productId: string | ProductDetails; // Can be a string (if not populated) or an object (if populated).
-  quantity: number;
-}
-
-// Type definition for each cart item.
+// Type definition for cart items
 interface CartItem {
-  _id: string;           // The unique cart item ID from MongoDB.
-  productId: string;     // The product's ID (populated via server populate).
-  name?: string;         // Product name.
-  price?: number;        // Product price.
-  stock?: number;        // Product stock.
-  quantity: number;      // Quantity in the cart.
-  images?: string[];     // Array of image URLs from the product.
+  _id: string;
+  productId: string;
+  name?: string;
+  price?: number;
+  stock?: number;
+  quantity: number;
+  images?: string[];
 }
 
 export default function CartPage() {
@@ -40,10 +31,9 @@ export default function CartPage() {
   const [savedItems, setSavedItems] = useState<ProductDetails[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState<string>("");
 
-  
-  
-  // Get user profile from API
+  // Fetch user profile from API
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -52,7 +42,6 @@ export default function CartPage() {
         const data = await res.json();
         setUserId(data.user._id);
         localStorage.setItem("userId", data.user._id);
-
       } catch (err) {
         console.error("Error fetching user profile:", err);
       }
@@ -61,29 +50,25 @@ export default function CartPage() {
   }, []);
 
   // Helper: transform items to have top-level name, price, stock, images, and productId as string.
- // ✅ Insert the updated `transformItem` function here.
-const transformItem = (item: BackendCartItem): CartItem => ({
-  _id: item._id,
-  name: (item.productId as ProductDetails)?.name,
-  price: (item.productId as ProductDetails)?.price,
-  stock: (item.productId as ProductDetails)?.stock,
-  images: (item.productId as ProductDetails)?.images,
-  productId:
-    typeof item.productId === "string" ? item.productId : item.productId._id,
-  quantity: item.quantity,
-});
+  const transformItem = (item: any): CartItem => ({
+    _id: item._id,
+    name: item.productId?.name,
+    price: item.productId?.price,
+    stock: item.productId?.stock,
+    images: item.productId?.images,
+    productId: typeof item.productId === "string" ? item.productId : item.productId._id,
+    quantity: item.quantity,
+  });
 
   // 1. Load cart on mount (from local storage and server)
   useEffect(() => {
     if (!userID) return;
 
-    // Check local storage for a cached cart
     const localCart = localStorage.getItem(`cart-${userID}`);
     if (localCart) {
       setCartItems(JSON.parse(localCart));
     }
 
-    // Fetch the latest cart data from the server
     fetch(`/api/shop/cart/${userID}`)
       .then((res) => res.json())
       .then((data) => {
@@ -96,7 +81,6 @@ const transformItem = (item: BackendCartItem): CartItem => ({
   }, [userID]);
 
   // Fetch saved items
-  // Fetch wishlist items and store them as ProductDetails
   useEffect(() => {
     const fetchSavedItems = async () => {
       try {
@@ -123,7 +107,6 @@ const transformItem = (item: BackendCartItem): CartItem => ({
     }
   }, [userID]);
 
-  
   // 2. Save cart changes to local storage whenever the cart changes
   useEffect(() => {
     if (userID) {
@@ -207,7 +190,7 @@ const transformItem = (item: BackendCartItem): CartItem => ({
   const handleSaveForLater = async (itemId: string) => {
     const item = cartItems.find((i) => i._id === itemId);
     if (!item) return;
-  
+
     try {
       // 1. Add product to wishlist
       await fetch(`/api/shop/wishlist/${userID}`, {
@@ -215,17 +198,17 @@ const transformItem = (item: BackendCartItem): CartItem => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId: item.productId }),
       });
-  
+
       // 2. Remove product from cart
       const updatedCart = cartItems.filter((i) => i._id !== itemId);
       setCartItems(updatedCart);
       updateCartOnServer(updatedCart);
-  
+
       // 3. Refetch wishlist and update saved items
       const res = await fetch(`/api/shop/wishlist/${userID}`);
       const data = await res.json();
       const wishlistItems = data.wishlist?.items || [];
-  
+
       const updatedSavedItems: ProductDetails[] = wishlistItems.map((item: any) => ({
         _id: item.productId._id,
         name: item.productId.name,
@@ -233,7 +216,7 @@ const transformItem = (item: BackendCartItem): CartItem => ({
         stock: item.productId.stock,
         images: item.productId.images,
       }));
-  
+
       setSavedItems(updatedSavedItems);
     } catch (err) {
       console.error("Failed to save item for later:", err);
@@ -246,33 +229,33 @@ const transformItem = (item: BackendCartItem): CartItem => ({
       const deleteRes = await fetch(`/api/shop/wishlist/${userID}?productId=${productId}`, {
         method: "DELETE",
       });
-  
+
       if (!deleteRes.ok) {
         throw new Error("Failed to remove item from wishlist");
       }
-  
+
       // Step 2: Add to cart
       const addToCartRes = await fetch(`/api/shop/cart/${userID}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId, quantity: 1 }),  // Ensure you're passing the correct data
       });
-  
+
       if (!addToCartRes.ok) {
         throw new Error("Failed to add item to cart");
       }
-  
+
       // Step 3: Refetch updated data
       const [cartRes, wishlistRes] = await Promise.all([
         fetch(`/api/shop/cart/${userID}`),
         fetch(`/api/shop/wishlist/${userID}`),
       ]);
-  
+
       const cartData = await cartRes.json();
       const wishlistData = await wishlistRes.json();
-  
+
       setCartItems(cartData.cart?.items || []);
-  
+
       const updatedSavedItems: ProductDetails[] =
         wishlistData.wishlist?.items?.map((item: any) => ({
           _id: item.productId._id,
@@ -281,23 +264,26 @@ const transformItem = (item: BackendCartItem): CartItem => ({
           stock: item.productId.stock,
           images: item.productId.images,
         })) || [];
-  
+
       setSavedItems(updatedSavedItems);
     } catch (err) {
       console.error("Failed to move item to cart:", err);
     }
   };
+
   // 10. Redirect back to shopping (home page)
   const handleBackToShopping = () => {
     router.push("/");
   };
-  console.log("savedItems in render:", savedItems);
-  const openSidebar = () => {
-    setIsSidebarOpen(true); // Open the sidebar
-  };
 
-  const closeSidebar = () => {
-    setIsSidebarOpen(false); // Close the sidebar
+  // Handle opening sidebar
+  const openSidebar = () => setIsSidebarOpen(true);
+  const closeSidebar = () => setIsSidebarOpen(false);
+
+  // Handle place order
+  const handlePlaceOrder = () => {
+    console.log("Placing order...");
+    router.push("/payment"); // Redirect to payment page (without shipping address)
   };
 
   return (
@@ -313,17 +299,10 @@ const transformItem = (item: BackendCartItem): CartItem => ({
             <p>Your cart is empty.</p>
           ) : (
             cartItems.map((item) => (
-              <div
-                key={item._id}
-                className="flex gap-4 border-b border-gray-300 pb-5 mb-5 last:border-b-0"
-              >
+              <div key={item._id} className="flex gap-4 border-b border-gray-300 pb-5 mb-5 last:border-b-0">
                 <div className="w-20 h-20 relative">
                   <Image
-                    src={
-                      item.images && item.images.length > 0
-                        ? item.images[0]
-                        : "/images/sample-shirt.png"
-                    }
+                    src={item.images && item.images.length > 0 ? item.images[0] : "/images/sample-shirt.png"}
                     alt={item.name || "Item"}
                     width={80}
                     height={80}
@@ -332,34 +311,22 @@ const transformItem = (item: BackendCartItem): CartItem => ({
                 <div className="flex-1 flex flex-col">
                   <div className="flex justify-between">
                     <div>
-                      <h3 className="text-base font-medium text-gray-900 mb-1">
-                        {item.name || "T-shirt"}
-                      </h3>
+                      <h3 className="text-base font-medium text-gray-900 mb-1">{item.name || "T-shirt"}</h3>
                       <p className="text-sm text-gray-500">
-                        Price: ${item.price?.toFixed(2)} — Stock:{" "}
-                        {item.stock ?? 0}
+                        Price: ${item.price?.toFixed(2)} — Stock: {item.stock ?? 0}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <div className="text-base font-medium text-gray-900">
-                        ${(item.price ?? 0).toFixed(2)}
-                      </div>
+                      <div className="text-base font-medium text-gray-900">${(item.price ?? 0).toFixed(2)}</div>
                       <div className="flex items-center border border-gray-300 rounded-md px-2 py-1 text-sm">
                         <label className="mr-2">Qty:</label>
                         <select
                           value={item.quantity}
-                          onChange={(e) =>
-                            handleQuantityChange(
-                              item._id,
-                              parseInt(e.target.value)
-                            )
-                          }
+                          onChange={(e) => handleQuantityChange(item._id, parseInt(e.target.value))}
                           className="outline-none bg-transparent"
                         >
                           {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
-                            <option key={num} value={num}>
-                              {num}
-                            </option>
+                            <option key={num} value={num}>{num}</option>
                           ))}
                         </select>
                       </div>
@@ -379,9 +346,7 @@ const transformItem = (item: BackendCartItem): CartItem => ({
                       Save for later
                     </button>
                   </div>
-                  <div className="mt-2 text-sm text-gray-700">
-                    Subtotal: ${getSubtotal(item).toFixed(2)}
-                  </div>
+                  <div className="mt-2 text-sm text-gray-700">Subtotal: ${getSubtotal(item).toFixed(2)}</div>
                 </div>
               </div>
             ))
@@ -400,7 +365,6 @@ const transformItem = (item: BackendCartItem): CartItem => ({
             >
               Remove All
             </button>
-
           </div>
         </section>
 
@@ -438,7 +402,7 @@ const transformItem = (item: BackendCartItem): CartItem => ({
               <span>Total:</span>
               <span>${(totalPrice - 60 + 14).toFixed(2)}</span>
             </div>
-            
+
             <button
               onClick={openSidebar}
               disabled={cartItems.length === 0}
@@ -454,8 +418,8 @@ const transformItem = (item: BackendCartItem): CartItem => ({
         </aside>
       </div>
 
-      {/* SAVED FOR LATER SECTION */}
-      <div className="mt-10 mx-10 bg-white border border-[#dee2e7] rounded-md p-5">
+       {/* SAVED FOR LATER SECTION */}
+       <div className="mt-10 mx-10 bg-white border border-[#dee2e7] rounded-md p-5">
         <h2 className="text-[20px] font-semibold text-[#1c1c1c] mb-5 text-left">Saved for later</h2>
         {savedItems.length === 0 ? (
           <p>No items saved for later.</p>
@@ -503,19 +467,15 @@ const transformItem = (item: BackendCartItem): CartItem => ({
           />
         </button>
       </div>
+      
+
       {/* Sidebar component for Checkout */}
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={closeSidebar}
         cart={cartItems}
-        onPlaceOrder={(shippingAddress: string) => {
-          console.log("Placing order with address:", shippingAddress);
-          // Add order logic here or call your API
-        }}
+        onPlaceOrder={handlePlaceOrder} // Now no need to pass shippingAddress here
       />
-
-
     </main>
-
   );
 }

@@ -30,14 +30,16 @@ export default function Login() {
       const data = await res.json();
       console.log("Login response:", data);
 
-      if (!res.ok) throw new Error(data.error || "Login failed");
-
-      // ✅ If needed, you can read the token from cookie (only if it's not httpOnly)
-      // const token = Cookies.get("authToken");
-      // if (token) console.log("Token from cookie:", token);
-
-      // ✅ Redirect to home/dashboard
-      router.push("/");
+      if (!res.ok) {
+        setError(data.error || "Login failed");
+      } else {
+        if (data.user && data.user.role === "admin") {
+          router.push("/product-management");
+        } else {
+          router.push("/profile");
+        }
+      }
+    
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);

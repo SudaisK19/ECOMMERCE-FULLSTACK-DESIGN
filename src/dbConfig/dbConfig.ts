@@ -1,24 +1,79 @@
 // src/dbConfig/dbConfig.ts
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
+import dotenv from "dotenv";
 
-let isConnected = false; // track the connection status
+// Load environment variables
+dotenv.config();
 
+// Get the MongoDB URI from environment variables
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  throw new Error("MONGO_URI is not defined in environment variables.");
+}
+
+/**
+ * Define a global interface for our cached Mongoose connection.
+ */
+interface MongooseCache {
+  conn: Mongoose | null;
+  promise: Promise<Mongoose> | null;
+}
+
+/**
+ * Augment the NodeJS global type with our mongooseCache property.
+ */
+declare global {
+  // eslint-disable-next-line no-var
+  var mongooseCache: MongooseCache | undefined;
+}
+
+/**
+ * Retrieve or create the global mongooseCache.
+ */
+function getGlobalCache(): MongooseCache {
+  if (!global.mongooseCache) {
+    global.mongooseCache = { conn: null, promise: null };
+  }
+  return global.mongooseCache;
+}
+
+/**
+ * The connect function manages the MongoDB connection with caching and connection pooling.
+ */
 export async function connect() {
-  // If already connected, just return
-  if (isConnected) return;
+  const cached = getGlobalCache();
 
-  // If mongoose is already connected, set the flag
-  if (mongoose.connection.readyState === 1) {
-    isConnected = true;
-    return;
+  // If there's already a cached connection, return it
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  // If there's no existing promise, create one with pooling enabled
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGO_URI as string, {
+      maxPoolSize: 10, // Set the maximum number of connections in the pool
+      
+      
+    }).then((mongooseInstance) => mongooseInstance);
   }
 
   try {
-    await mongoose.connect(process.env.MONGODB_URI as string);
-    isConnected = true;
-    console.log("Connected to MongoDB");
+    cached.conn = await cached.promise;
+    const connection = mongoose.connection;
+
+    // Monitor the connection status
+    connection.on("connected", () => {
+      console.log("MongoDB connected...");
+    });
+
+    connection.on("error", (err) => {
+      console.error("MongoDB connection error. Please make sure MongoDB is running.", err);
+      process.exit();
+    });
+
+    return cached.conn;
   } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw new Error("Failed to connect to MongoDB");
+    console.error("Error connecting to MongoDB:", error);
+    process.exit();
   }
 }

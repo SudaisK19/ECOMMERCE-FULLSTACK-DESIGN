@@ -1,10 +1,11 @@
+// components/AdminDashboard.tsx
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-// Update the interface so that category can be either a string or an object
+// --- your existing Product & AdminInfo interfaces ---
 interface Product {
   _id?: string;
   name: string;
@@ -13,80 +14,49 @@ interface Product {
   stock: number;
   category?: string | { _id: string; name: string };
 }
-
-// Define an interface for admin info
 interface AdminInfo {
   _id: string;
   name: string;
   email: string;
 }
 
-export default function AdminDashboard() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "products">("dashboard");
-  const [user, setUser] = useState<AdminInfo | null>(null);
+// --- new Order interfaces ---
+interface OrderItem {
+  productId: { name: string; price: number };
+  quantity: number;
+}
+interface Order {
+  _id: string;
+  userId: { _id: string; name: string; email: string };
+  items: OrderItem[];
+  totalAmount: number;
+  shippingAddress: string;
+  status: "pending" | "shipped" | "delivered" | "cancelled";
+  createdAt: string;
+}
 
+export default function AdminDashboard() {
+  const router = useRouter();
+
+  // --- Shared admin/user state ---
+  const [user, setUser] = useState<AdminInfo | null>(null);
+  const [error, setError] = useState("");
+
+  // which tab is active?
+  const [activeTab, setActiveTab] = useState<"dashboard" | "products" | "orders">("dashboard");
+
+  // product-management state
+  const [products, setProducts] = useState<Product[]>([]);
+  // order-management state
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  // modal & selection state for products
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const router = useRouter();
 
-  // Fetch admin info
-  const fetchAdminInfo = async () => {
-    try {
-      const res = await fetch("/api/admin/info");
-      const data = await res.json();
-      if (data.admin) {
-        setUser(data.admin);
-      } else {
-        setError("Admin info not found.");
-      }
-    } catch (err) {
-      console.error("Error fetching admin info:", err);
-      setError("Failed to fetch admin info.");
-    }
-  };
-  
-
-  // Fetch products for product management tab
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch("/api/admin/product-management");
-      const data = await res.json();
-      if (data.products) {
-        setProducts(data.products);
-        setError("");
-      } else {
-        setError("No products found.");
-      }
-    } catch (err) {
-      console.error("Error fetching products info:", err);
-      setError("Failed to fetch products.");
-    }
-  };
-
-  // Fetch admin info on component mount
-  useEffect(() => {
-    fetchAdminInfo();
-  }, []);
-
-  // Fetch products when the products tab is active
-  useEffect(() => {
-    if (activeTab === "products") {
-      fetchProducts();
-    }
-  }, [activeTab]);
-
-  const handleLogout = async () => {
-    const res = await fetch("/api/auth/logout", { method: "POST" });
-    if (res.ok) {
-      router.push("/auth?mode=login");
-    }
-  };
-
-  // ------------------- ADD PRODUCT -------------------
+  // form state for new product
   const [newProduct, setNewProduct] = useState<Product>({
     name: "",
     description: "",
@@ -95,95 +65,132 @@ export default function AdminDashboard() {
     category: "",
   });
 
+  // --- Fetch admin info once ---
+  useEffect(() => {
+    fetch("/api/admin/info")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.admin) setUser(data.admin);
+        else setError("Admin info not found.");
+      })
+      .catch(() => setError("Failed to fetch admin info."));
+  }, []);
+
+  // --- Fetch products when products tab opens ---
+  useEffect(() => {
+    if (activeTab !== "products") return;
+    fetch("/api/admin/product-management")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.products) setProducts(data.products);
+        else setError("No products found.");
+      })
+      .catch(() => setError("Failed to fetch products."));
+  }, [activeTab]);
+
+  // --- Fetch orders when orders tab opens ---
+  useEffect(() => {
+    if (activeTab !== "orders") return;
+    fetch("/api/admin/order-management")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setOrders(data.orders);
+        else setError(data.error || "No orders found.");
+      })
+      .catch(() => setError("Failed to fetch orders."));
+  }, [activeTab]);
+
+  // --- Logout handler ---
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/auth?mode=login");
+  };
+
+  // ------------ PRODUCT MANAGEMENT HANDLERS ------------
+
   const handleAddClick = () => {
-    setNewProduct({
-      name: "",
-      description: "",
-      price: 0,
-      stock: 0,
-      category: "",
-    });
+    setNewProduct({ name: "", description: "", price: 0, stock: 0, category: "" });
     setShowAddModal(true);
   };
-
   const handleAddSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    try {
-      const res = await fetch("/api/admin/product-management", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newProduct),
-      });
-      if (!res.ok) {
-        setError("Failed to add product.");
-        return;
-      }
-      fetchProducts();
-      setShowAddModal(false);
-    } catch (err) {
-      console.error("Error adding product:", err);
-      setError("Failed to add product.");
-    }
+    const res = await fetch("/api/admin/product-management", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newProduct),
+    });
+    if (!res.ok) return setError("Failed to add product.");
+    setShowAddModal(false);
+    setActiveTab("dashboard");
+    setTimeout(() => setActiveTab("products"), 0);
   };
-
-  // ------------------- EDIT PRODUCT -------------------
-  const handleEditClick = (product: Product) => {
-    setSelectedProduct(product);
+  const handleEditClick = (p: Product) => {
+    setSelectedProduct(p);
     setShowEditModal(true);
   };
-
   const handleEditSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedProduct?._id) return;
-    try {
-      const res = await fetch("/api/admin/product-management", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(selectedProduct),
-      });
-      if (!res.ok) {
-        setError("Failed to update product.");
-        return;
-      }
-      fetchProducts();
-      setShowEditModal(false);
-    } catch (err) {
-      console.error("Error updating product:", err);
-      setError("Failed to update product.");
-    }
+    const res = await fetch("/api/admin/product-management", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(selectedProduct),
+    });
+    if (!res.ok) return setError("Failed to update product.");
+    setShowEditModal(false);
+    setActiveTab("dashboard");
+    setTimeout(() => setActiveTab("products"), 0);
   };
-
-  // ------------------- DELETE PRODUCT -------------------
-  const handleDeleteClick = (product: Product) => {
-    setSelectedProduct(product);
+  const handleDeleteClick = (p: Product) => {
+    setSelectedProduct(p);
     setShowDeleteModal(true);
   };
-
   const confirmDelete = async () => {
     if (!selectedProduct?._id) return;
-    try {
-      const res = await fetch("/api/admin/product-management", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selectedProduct._id }),
-      });
-      if (!res.ok) {
-        setError("Failed to delete product.");
-        return;
-      }
-      fetchProducts();
-      setShowDeleteModal(false);
-    } catch (err) {
-      console.error("Error deleting product:", err);
-      setError("Failed to delete product.");
+    const res = await fetch("/api/admin/product-management", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: selectedProduct._id }),
+    });
+    if (!res.ok) return setError("Failed to delete product.");
+    setShowDeleteModal(false);
+    setActiveTab("dashboard");
+    setTimeout(() => setActiveTab("products"), 0);
+  };
+  const getCategoryString = (cat: Product["category"]): string =>
+    !cat ? "" : typeof cat === "object" ? cat.name : cat;
+
+  // ------------ ORDER MANAGEMENT HANDLERS ------------
+
+  const handleStatusChange = async (orderId: string, newStatus: Order["status"]) => {
+    const res = await fetch("/api/admin/order-management", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ _id: orderId, status: newStatus }),
+    });
+    if (res.ok) {
+      setOrders((o) =>
+        o.map((ord) =>
+          ord._id === orderId ? { ...ord, status: newStatus } : ord
+        )
+      );
+    } else {
+      setError("Failed to update order status.");
     }
   };
 
-  // Helper to convert category to a string for inputs
-  const getCategoryString = (cat: Product["category"]): string => {
-    if (!cat) return "";
-    if (typeof cat === "object") return cat.name || "";
-    return cat;
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm("Delete this order?")) return;
+    const res = await fetch("/api/admin/order-management", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ _id: orderId }),
+    });
+    if (res.ok) {
+      setOrders((o) => o.filter((ord) => ord._id !== orderId));
+    } else {
+      setError("Failed to delete order.");
+    }
   };
 
   return (
@@ -192,20 +199,13 @@ export default function AdminDashboard() {
       <header className="top-bar">
         <div className="top-left">
           <div className="logo-icon">
-          <Image
-            src="/images/brand-icon.png"
-            alt="Brand Icon"
-            width={40}
-            height={40}
-          />
-
+            <Image src="/images/brand-icon.png" alt="Brand" width={40} height={40} />
           </div>
           <span className="logo-text">Brand</span>
           <span className="admin-panel-text">Admin Panel</span>
         </div>
       </header>
 
-      {/* Main Layout */}
       <div className="content-wrapper">
         {/* Sidebar */}
         <aside className="sidebar">
@@ -214,27 +214,27 @@ export default function AdminDashboard() {
               className={`nav-item ${activeTab === "products" ? "active" : ""}`}
               onClick={() => setActiveTab("products")}
             >
-              <i className="fas fa-box"></i> Product Management
+              <i className="fas fa-box" /> Product Management
+            </button>
+            <button
+              className={`nav-item ${activeTab === "orders" ? "active" : ""}`}
+              onClick={() => setActiveTab("orders")}
+            >
+              <i className="fas fa-clipboard-list" /> Order Management
             </button>
           </nav>
 
-          {/* User Info - Dynamic Admin Info */}
+          {/* Admin Info & Logout */}
           <div className="user-info">
             {user ? (
               <>
-                <Image
-                  src="/images/avatar.png"
-                  alt="User Avatar"
-                  className="user-avatar"
-                  width={50}
-                  height={50}
-                />
+                <Image src="/images/avatar.png" alt="User" width={50} height={50} className="user-avatar" />
                 <div className="user-name">{user.name}</div>
-                <div className="user-email">{user.email}</div> {/* Display email here */}
+                <div className="user-email">{user.email}</div>
                 <div className="user-role">Admin</div>
               </>
             ) : (
-              <p>Loading admin info...</p>
+              <p>Loading admin info…</p>
             )}
             <button className="logout-btn" onClick={handleLogout}>
               Logout
@@ -242,29 +242,24 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-
         {/* Main Content */}
         <main className="main-content">
-          
-
+          {/* Product Management */}
           {activeTab === "products" && (
             <div className="product-card">
               <h2 className="product-title">Product Management</h2>
-
               {error && <div className="error-message">{error}</div>}
-
               <div className="top-actions">
                 <button onClick={handleAddClick} className="add-product-btn">
                   Add Product
                 </button>
               </div>
-
               <div className="table-wrapper">
                 <table className="product-table">
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Product Name</th>
+                      <th>Name</th>
                       <th>Category</th>
                       <th>Price</th>
                       <th>Stock</th>
@@ -273,22 +268,18 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {products.length > 0 ? (
-                      products.map((product) => (
-                        <tr key={product._id}>
-                          <td>{product._id}</td>
-                          <td>{product.name}</td>
+                      products.map((p) => (
+                        <tr key={p._id}>
+                          <td>{p._id}</td>
+                          <td>{p.name}</td>
+                          <td>{getCategoryString(p.category)}</td>
+                          <td>${p.price}</td>
+                          <td>{p.stock}</td>
                           <td>
-                            {typeof product.category === "object"
-                              ? product.category.name
-                              : product.category}
-                          </td>
-                          <td>${product.price}</td>
-                          <td>{product.stock}</td>
-                          <td>
-                            <button onClick={() => handleEditClick(product)} className="edit-link">
+                            <button onClick={() => handleEditClick(p)} className="edit-link">
                               Edit
                             </button>
-                            <button onClick={() => handleDeleteClick(product)} className="delete-btn">
+                            <button onClick={() => handleDeleteClick(p)} className="delete-btn">
                               Delete
                             </button>
                           </td>
@@ -306,10 +297,88 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* Order Management */}
+          {activeTab === "orders" && (
+            <div className="product-card">
+              <h2 className="product-title">Order Management</h2>
+              {error && <div className="error-message">{error}</div>}
+              <div className="table-wrapper">
+                <table className="product-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>User</th>
+                      <th>Items</th>
+                      <th>Total</th>
+                      <th>Address</th>
+                      <th>Status</th>
+                      <th>Created At</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.length > 0 ? (
+                      orders.map((o) => (
+                        <tr key={o._id}>
+                          <td>{o._id}</td>
+                          <td>
+                            {o.userId.name}<br/>
+                            <small>{o.userId.email}</small>
+                          </td>
+                          <td>
+                            {o.items.map((it) => (
+                              <div key={it.productId.name}>
+                                {it.productId.name} × {it.quantity}
+                              </div>
+                            ))}
+                          </td>
+                          <td>${o.totalAmount.toFixed(2)}</td>
+                          <td>{o.shippingAddress}</td>
+                          <td>
+                            <select
+                              value={o.status}
+                              onChange={(e) =>
+                                handleStatusChange(
+                                  o._id,
+                                  e.target.value as Order["status"]
+                                )
+                              }
+                            >
+                              {["pending","shipped","delivered","cancelled"].map((s) => (
+                                <option key={s} value={s}>
+                                  {s.charAt(0).toUpperCase()+s.slice(1)}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>{new Date(o.createdAt).toLocaleString()}</td>
+                          <td>
+                            <button
+                              onClick={() => handleDeleteOrder(o._id)}
+                              className="delete-btn"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: "center" }}>
+                          No orders found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* ADD PRODUCT MODAL */}
+      {/* ADD / EDIT / DELETE PRODUCT MODALS */}
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -349,11 +418,8 @@ export default function AdminDashboard() {
                 onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
                 required
               />
-
               <div className="modal-actions">
-                <button type="submit" className="save-btn">
-                  Save
-                </button>
+                <button type="submit" className="save-btn">Save</button>
                 <button type="button" className="cancel-btn" onClick={() => setShowAddModal(false)}>
                   Cancel
                 </button>
@@ -362,8 +428,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-
-      {/* EDIT PRODUCT MODAL */}
       {showEditModal && selectedProduct && (
         <div className="modal-overlay">
           <div className="modal">
@@ -411,11 +475,8 @@ export default function AdminDashboard() {
                 }
                 required
               />
-
               <div className="modal-actions">
-                <button type="submit" className="save-btn">
-                  Update
-                </button>
+                <button type="submit" className="save-btn">Update</button>
                 <button type="button" className="cancel-btn" onClick={() => setShowEditModal(false)}>
                   Cancel
                 </button>
@@ -424,19 +485,13 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-
-      {/* DELETE CONFIRMATION MODAL */}
       {showDeleteModal && selectedProduct && (
         <div className="modal-overlay">
           <div className="modal">
             <h3>Delete Product</h3>
-            <p>
-              Are you sure you want to delete <strong>{selectedProduct.name}</strong>?
-            </p>
+            <p>Are you sure you want to delete <strong>{selectedProduct.name}</strong>?</p>
             <div className="modal-actions">
-              <button onClick={confirmDelete} className="delete-confirm-btn">
-                Delete
-              </button>
+              <button onClick={confirmDelete} className="delete-confirm-btn">Delete</button>
               <button onClick={() => setShowDeleteModal(false)} className="cancel-btn">
                 Cancel
               </button>
@@ -445,6 +500,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* All your existing <style jsx>… */}
       <style jsx>{`
         html,
         body,

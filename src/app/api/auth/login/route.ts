@@ -5,36 +5,32 @@ import jwt from "jsonwebtoken";
 
 export async function POST(request: NextRequest) {
   try {
-    // Establish DB connection here instead of at the top level
     await connect();
-
     const { email, password } = await request.json();
 
-    // Find user by email and include password in the result
     const user = await User.findOne({ email }).select("+password");
-
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-
-    // Validate password (mocked here, normally you'd hash compare)
     if (password !== user.password) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
-
     if (!process.env.JWT_SECRET) {
       throw new Error("JWT_SECRET is not defined");
     }
 
+    // ← sign the token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
+    // ← include it in the JSON response
     const responseData = {
       message: "Login successful",
       success: true,
+      token,       // ← new
       user: {
         _id: user._id,
         role: user.role,
@@ -45,6 +41,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json(responseData, { status: 200 });
 
+    // you may continue to set the cookie if you like:
     response.cookies.set({
       name: "authToken",
       value: token,
@@ -56,18 +53,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error("Error in login route:", error.message);
-      return NextResponse.json(
-        { error: "Internal Server Error", details: error.message },
-        { status: 500 }
-      );
-    } else {
-      console.error("Unknown error occurred:", error);
-      return NextResponse.json(
-        { error: "Internal Server Error" },
-        { status: 500 }
-      );
-    }
+    console.error("Error in login route:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error instanceof Error ? error.message : undefined },
+      { status: 500 }
+    );
   }
 }

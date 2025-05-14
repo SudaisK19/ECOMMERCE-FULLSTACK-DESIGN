@@ -20,7 +20,7 @@ interface AdminInfo {
   email: string;
 }
 
-// --- new Order interfaces ---
+// --- your existing Order interfaces ---
 interface OrderItem {
   productId: { name: string; price: number };
   quantity: number;
@@ -43,7 +43,9 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
 
   // which tab is active?
-  const [activeTab, setActiveTab] = useState<"dashboard" | "products" | "orders">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "products" | "orders">(
+    "dashboard"
+  );
 
   // product-management state
   const [products, setProducts] = useState<Product[]>([]);
@@ -199,7 +201,12 @@ export default function AdminDashboard() {
       <header className="top-bar">
         <div className="top-left">
           <div className="logo-icon">
-            <Image src="/images/brand-icon.png" alt="Brand" width={40} height={40} />
+            <Image
+              src="/images/brand-icon.png"
+              alt="Brand"
+              width={40}
+              height={40}
+            />
           </div>
           <span className="logo-text">Brand</span>
           <span className="admin-panel-text">Admin Panel</span>
@@ -211,7 +218,9 @@ export default function AdminDashboard() {
         <aside className="sidebar">
           <nav className="nav-links">
             <button
-              className={`nav-item ${activeTab === "products" ? "active" : ""}`}
+              className={`nav-item ${
+                activeTab === "products" ? "active" : ""
+              }`}
               onClick={() => setActiveTab("products")}
             >
               <i className="fas fa-box" /> Product Management
@@ -222,13 +231,26 @@ export default function AdminDashboard() {
             >
               <i className="fas fa-clipboard-list" /> Order Management
             </button>
+            {/* ← NEW: Messages button */}
+            <button
+              className="nav-item"
+              onClick={() => router.push("/admin-chat")}
+            >
+              <i className="fas fa-comments" /> Inbox
+            </button>
           </nav>
 
           {/* Admin Info & Logout */}
           <div className="user-info">
             {user ? (
               <>
-                <Image src="/images/avatar.png" alt="User" width={50} height={50} className="user-avatar" />
+                <Image
+                  src="/images/avatar.png"
+                  alt="User"
+                  width={50}
+                  height={50}
+                  className="user-avatar"
+                />
                 <div className="user-name">{user.name}</div>
                 <div className="user-email">{user.email}</div>
                 <div className="user-role">Admin</div>
@@ -250,7 +272,10 @@ export default function AdminDashboard() {
               <h2 className="product-title">Product Management</h2>
               {error && <div className="error-message">{error}</div>}
               <div className="top-actions">
-                <button onClick={handleAddClick} className="add-product-btn">
+                <button
+                  onClick={handleAddClick}
+                  className="add-product-btn"
+                >
                   Add Product
                 </button>
               </div>
@@ -276,10 +301,16 @@ export default function AdminDashboard() {
                           <td>${p.price}</td>
                           <td>{p.stock}</td>
                           <td>
-                            <button onClick={() => handleEditClick(p)} className="edit-link">
+                            <button
+                              onClick={() => handleEditClick(p)}
+                              className="edit-link"
+                            >
                               Edit
                             </button>
-                            <button onClick={() => handleDeleteClick(p)} className="delete-btn">
+                            <button
+                              onClick={() => handleDeleteClick(p)}
+                              className="delete-btn"
+                            >
                               Delete
                             </button>
                           </td>
@@ -287,7 +318,10 @@ export default function AdminDashboard() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center" }}>
+                        <td
+                          colSpan={6}
+                          style={{ textAlign: "center" }}
+                        >
                           No products found.
                         </td>
                       </tr>
@@ -323,7 +357,8 @@ export default function AdminDashboard() {
                         <tr key={o._id}>
                           <td>{o._id}</td>
                           <td>
-                            {o.userId.name}<br/>
+                            {o.userId.name}
+                            <br />
                             <small>{o.userId.email}</small>
                           </td>
                           <td>
@@ -345,14 +380,21 @@ export default function AdminDashboard() {
                                 )
                               }
                             >
-                              {["pending","shipped","delivered","cancelled"].map((s) => (
+                              {[
+                                "pending",
+                                "shipped",
+                                "delivered",
+                                "cancelled",
+                              ].map((s) => (
                                 <option key={s} value={s}>
-                                  {s.charAt(0).toUpperCase()+s.slice(1)}
+                                  {s.charAt(0).toUpperCase() + s.slice(1)}
                                 </option>
                               ))}
                             </select>
                           </td>
-                          <td>{new Date(o.createdAt).toLocaleString()}</td>
+                          <td>
+                            {new Date(o.createdAt).toLocaleString()}
+                          </td>
                           <td>
                             <button
                               onClick={() => handleDeleteOrder(o._id)}
@@ -365,7 +407,10 @@ export default function AdminDashboard() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center" }}>
+                        <td
+                          colSpan={8}
+                          style={{ textAlign: "center" }}
+                        >
                           No orders found.
                         </td>
                       </tr>
@@ -388,39 +433,55 @@ export default function AdminDashboard() {
               <input
                 type="text"
                 value={newProduct.name}
-                onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, name: e.target.value })
+                }
                 required
               />
               <label>Description</label>
               <textarea
                 value={newProduct.description}
-                onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, description: e.target.value })
+                }
                 required
               />
               <label>Price</label>
               <input
                 type="number"
                 value={newProduct.price}
-                onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, price: Number(e.target.value) })
+                }
                 required
               />
               <label>Stock</label>
               <input
                 type="number"
                 value={newProduct.stock}
-                onChange={(e) => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, stock: Number(e.target.value) })
+                }
                 required
               />
               <label>Category</label>
               <input
                 type="text"
                 value={getCategoryString(newProduct.category)}
-                onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, category: e.target.value })
+                }
                 required
               />
               <div className="modal-actions">
-                <button type="submit" className="save-btn">Save</button>
-                <button type="button" className="cancel-btn" onClick={() => setShowAddModal(false)}>
+                <button type="submit" className="save-btn">
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => setShowAddModal(false)}
+                >
                   Cancel
                 </button>
               </div>
@@ -437,14 +498,19 @@ export default function AdminDashboard() {
               <input
                 type="text"
                 value={selectedProduct.name}
-                onChange={(e) => setSelectedProduct({ ...selectedProduct, name: e.target.value })}
+                onChange={(e) =>
+                  setSelectedProduct({ ...selectedProduct, name: e.target.value })
+                }
                 required
               />
               <label>Description</label>
               <textarea
                 value={selectedProduct.description}
                 onChange={(e) =>
-                  setSelectedProduct({ ...selectedProduct, description: e.target.value })
+                  setSelectedProduct({
+                    ...selectedProduct,
+                    description: e.target.value,
+                  })
                 }
                 required
               />
@@ -453,7 +519,10 @@ export default function AdminDashboard() {
                 type="number"
                 value={selectedProduct.price}
                 onChange={(e) =>
-                  setSelectedProduct({ ...selectedProduct, price: Number(e.target.value) })
+                  setSelectedProduct({
+                    ...selectedProduct,
+                    price: Number(e.target.value),
+                  })
                 }
                 required
               />
@@ -462,7 +531,10 @@ export default function AdminDashboard() {
                 type="number"
                 value={selectedProduct.stock}
                 onChange={(e) =>
-                  setSelectedProduct({ ...selectedProduct, stock: Number(e.target.value) })
+                  setSelectedProduct({
+                    ...selectedProduct,
+                    stock: Number(e.target.value),
+                  })
                 }
                 required
               />
@@ -471,13 +543,22 @@ export default function AdminDashboard() {
                 type="text"
                 value={getCategoryString(selectedProduct.category)}
                 onChange={(e) =>
-                  setSelectedProduct({ ...selectedProduct, category: e.target.value })
+                  setSelectedProduct({
+                    ...selectedProduct,
+                    category: e.target.value,
+                  })
                 }
                 required
               />
               <div className="modal-actions">
-                <button type="submit" className="save-btn">Update</button>
-                <button type="button" className="cancel-btn" onClick={() => setShowEditModal(false)}>
+                <button type="submit" className="save-btn">
+                  Update
+                </button>
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => setShowEditModal(false)}
+                >
                   Cancel
                 </button>
               </div>
@@ -489,16 +570,30 @@ export default function AdminDashboard() {
         <div className="modal-overlay">
           <div className="modal">
             <h3>Delete Product</h3>
-            <p>Are you sure you want to delete <strong>{selectedProduct.name}</strong>?</p>
+            <p>
+              Are you sure you want to delete{" "}
+              <strong>{selectedProduct.name}</strong>?
+            </p>
             <div className="modal-actions">
-              <button onClick={confirmDelete} className="delete-confirm-btn">Delete</button>
-              <button onClick={() => setShowDeleteModal(false)} className="cancel-btn">
+              <button
+                onClick={confirmDelete}
+                className="delete-confirm-btn"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="cancel-btn"
+              >
                 Cancel
               </button>
             </div>
           </div>
         </div>
       )}
+
+
+
 
       {/* All your existing <style jsx>… */}
       <style jsx>{`

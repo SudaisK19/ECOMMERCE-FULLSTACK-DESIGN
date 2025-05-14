@@ -7,8 +7,8 @@ export default function Login() {
   const router = useRouter();
 
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,7 +24,7 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
-        credentials: "include", // Important to include cookies in request/response
+        credentials: "include", // still okay to receive the cookie, but we’ll use the token header
       });
 
       const data = await res.json();
@@ -33,19 +33,18 @@ export default function Login() {
       if (!res.ok) {
         setError(data.error || "Login failed");
       } else {
+        // ← store the JWT for header-based auth
+        localStorage.setItem("authToken", data.token);
+
         if (data.user && data.user.role === "admin") {
           router.push("/product-management");
         } else {
           router.push("/profile");
         }
       }
-    
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unknown error occurred.");
-      }
+      if (err instanceof Error) setError(err.message);
+      else setError("An unknown error occurred.");
     } finally {
       setLoading(false);
     }

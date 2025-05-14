@@ -9,8 +9,6 @@ interface Category {
   name: string;
 }
 
-
-
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
@@ -49,9 +47,14 @@ const Header = () => {
 
   const actionIcons = [
     { icon: "profile.png", label: "Profile", link: "/profile" },
-    { icon: "message.png", label: "Message" },
+    // <-- Added link to go to customer-chat →
+    { icon: "message.png", label: "Message", link: "/customer-chat" },
     { icon: "orders.png", label: "Orders" },
-    { icon: "cart.png", label: "My cart", link: userId ? `/cart-managment/${userId}` : "#" },
+    {
+      icon: "cart.png",
+      label: "My cart",
+      link: userId ? `/cart-managment/${userId}` : "#",
+    },
   ];
 
   return (
@@ -60,24 +63,40 @@ const Header = () => {
       <div className="hidden md:flex justify-between items-center border-b border-gray-200 py-3 max-w-7xl mx-auto px-4">
         <Link href="/">
           <div className="flex items-center space-x-2 cursor-pointer">
-            <Image src="/images/brand-icon.png" alt="Brand Icon" width={30} height={30} />
+            <Image
+              src="/images/brand-icon.png"
+              alt="Brand Icon"
+              width={30}
+              height={30}
+            />
             <span className="text-xl font-bold text-[#8CB7F5]">Brand</span>
           </div>
         </Link>
 
         <div className="flex items-center border border-blue-500 rounded-md overflow-hidden w-full max-w-lg mx-10">
-          <input type="text" placeholder="Search" className="flex-1 p-2 outline-none text-sm" />
+          <input
+            type="text"
+            placeholder="Search"
+            className="flex-1 p-2 outline-none text-sm"
+          />
           <select className="border-l border-blue-500 px-4 text-sm outline-none">
             <option>All category</option>
           </select>
-          <button className="bg-blue-600 text-white px-6 py-2 font-medium">Search</button>
+          <button className="bg-blue-600 text-white px-6 py-2 font-medium">
+            Search
+          </button>
         </div>
 
         <div className="flex items-center space-x-6 text-gray-500">
           {actionIcons.map((item) => {
             const content = (
               <div className="flex flex-col items-center text-xs cursor-pointer">
-                <Image src={`/images/icons/${item.icon}`} alt={item.label} width={20} height={20} />
+                <Image
+                  src={`/images/icons/${item.icon}`}
+                  alt={item.label}
+                  width={20}
+                  height={20}
+                />
                 <span>{item.label}</span>
               </div>
             );
@@ -95,20 +114,42 @@ const Header = () => {
       {/* Mobile Header */}
       <div className="md:hidden flex justify-between items-center border-b border-gray-300 bg-white py-3 px-4">
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-          <Image src="/images/icons/menu.png" alt="Menu" width={24} height={24} />
+          <Image
+            src="/images/icons/menu.png"
+            alt="Menu"
+            width={24}
+            height={24}
+          />
         </button>
         <Link href="/">
           <div className="flex items-center space-x-2 cursor-pointer">
-            <Image src="/images/brand-icon.png" alt="Brand Icon" width={20} height={20} />
+            <Image
+              src="/images/brand-icon.png"
+              alt="Brand Icon"
+              width={20}
+              height={20}
+            />
             <span className="text-lg font-semibold text-blue-400">Brand</span>
           </div>
         </Link>
         <div className="flex space-x-4">
-          <Link href={userId ? `/cart-managment/${userId}` : "#"}>
-            <Image src="/images/icons/cart.png" alt="Cart" width={24} height={24} />
+          <Link
+            href={userId ? `/cart-managment/${userId}` : "#"}
+          >
+            <Image
+              src="/images/icons/cart.png"
+              alt="Cart"
+              width={24}
+              height={24}
+            />
           </Link>
           <Link href="/profile">
-            <Image src="/images/icons/profile.png" alt="User" width={24} height={24} />
+            <Image
+              src="/images/icons/profile.png"
+              alt="User"
+              width={24}
+              height={24}
+            />
           </Link>
         </div>
       </div>
@@ -116,7 +157,11 @@ const Header = () => {
       {/* Mobile Search */}
       <div className="md:hidden px-4 py-2">
         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-          <input type="text" placeholder="🔍 Search" className="flex-1 p-2 outline-none text-sm" />
+          <input
+            type="text"
+            placeholder="🔍 Search"
+            className="flex-1 p-2 outline-none text-sm"
+          />
         </div>
       </div>
 
@@ -140,7 +185,12 @@ const Header = () => {
       >
         <div className="p-4 flex justify-end">
           <button onClick={() => setIsMobileMenuOpen(false)}>
-            <Image src="/images/icons/arrow_back.png" alt="Close" width={24} height={24} />
+            <Image
+              src="/images/icons/arrow_back.png"
+              alt="Close"
+              width={24}
+              height={24}
+            />
           </button>
         </div>
         <nav className="flex flex-col space-y-4 p-6">
@@ -169,7 +219,12 @@ const Header = () => {
               className="flex items-center space-x-1 cursor-pointer"
               onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
             >
-              <Image src="/images/icons/menu.png" width={16} height={16} alt="Menu" />
+              <Image
+                src="/images/icons/menu.png"
+                width={16}
+                height={16}
+                alt="Menu"
+              />
               <span>All category</span>
             </button>
             {isDesktopMenuOpen && (
@@ -210,7 +265,12 @@ const Header = () => {
           </span>
           <span className="flex items-center space-x-1 cursor-pointer">
             <span>Ship to</span>
-            <Image src="/images/germany.png" alt="Flag" width={20} height={12} />
+            <Image
+              src="/images/germany.png"
+              alt="Flag"
+              width={20}
+              height={12}
+            />
             <span className="text-xs text-gray-500">⌄</span>
           </span>
         </div>
